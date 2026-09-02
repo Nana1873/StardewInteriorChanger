@@ -1,8 +1,9 @@
 # Agent workflow
 
-- Das frisch öffentlich veröffentlichte SDVKit ist die kanonische Umgebung für Live-Tests, Fixtures und Reviews. Die exakte freigegebene Version wird ausschließlich im README gepinnt; eine lokale SDVKit-Source-Version ist keine Ersatzlaufzeit.
-- Generische Save-, Profil-, Staging-, Prozess-, AlwaysOn-, Command-, Screenshot-, Fixture- und Multiplayer-Funktionen gehören in SDVKit. Mod-spezifische Logik, Unit-Tests, Content-Packs und fachliche Assertions bleiben in diesem Repository.
-- Normale Stardew-Saves sowie normale oder mod-manager-eigene Mods bleiben unangetastet. Alle generierten Builds, Pakete, Profile, Logs, Fixtures, Screenshots und Review-Daten liegen unter `.sdvkit/`.
-- `single` ist die Standardtopologie für Smoke und Review. `network-2` wird nur für ausdrücklich verlangte Multiplayer-Abnahmen verwendet.
-- Funktionale und visuelle Abnahmen folgen dem öffentlichen SDVKit-Skill `sdv-project-review`; der begrenzte automatische Smoke folgt `sdv-project-smoke`.
-- Die kanonischen relativen Ziele sind Mod `src\StardewInteriorChanger`, Tests `tests\StardewInteriorChanger.Core.Tests` und Review-Pack `tests\fixtures\SmokeGreenhousePack`.
+- Write repository-facing documentation, code comments, issue and pull-request text, and user-visible project text in English.
+- The publicly released SDVKit build is the canonical environment for live tests, fixtures, and reviews. The exact approved version is pinned only in the README; a local SDVKit source build is not a substitute runtime.
+- Generic save, profile, staging, process, AlwaysOn, command, screenshot, fixture, and multiplayer functionality belongs in SDVKit. Mod-specific logic, unit tests, content packs, and domain assertions remain in this repository.
+- Normal Stardew saves and normal or mod-manager-owned mods must remain untouched. All generated builds, packages, profiles, logs, fixtures, screenshots, and review data belong under `.sdvkit/`.
+- `single` is the default topology for smoke tests and reviews. Use `network-2` only for explicitly requested multiplayer validation.
+- Functional and visual validation follows the public SDVKit skill `sdv-project-review`; the bounded automated smoke test follows `sdv-project-smoke`.
+- The canonical relative targets are the mod at `src\StardewInteriorChanger`, the tests at `tests\StardewInteriorChanger.Core.Tests`, and the review pack at `tests\fixtures\SmokeGreenhousePack`.

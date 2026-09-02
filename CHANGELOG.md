@@ -1,43 +1,44 @@
 # Changelog
 
-Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert. Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/); veröffentlichte Versionen sollen [Semantic Versioning](https://semver.org/lang/de/) folgen.
+All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and released versions should follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
 ### Added
 
-- Initialer Projektvertrag für einen SMAPI-basierten Interior-Selector.
-- MVP-Grenze mit `Greenhouse` und `DeluxeBarn`.
-- Versioniertes Interior-Pack-Schema `FormatVersion: 1`.
-- Host-autorisierter Multiplayer-Vertrag mit exakten Gameplay-Hashes auf allen Peers.
-- Fail-closed-Sicherheitsgrenzen für Layoutwechsel und fehlende beziehungsweise abweichende Packs.
-- Nicht installierbares Schema-Beispiel ohne Spiel- oder Fremdassets.
-- Dokumentierte Lizenz- und Adaptergrenze für Drittanbieter-Inhalte.
-- Spielunabhängige Core-Domäne für Registry, Pfadsicherheit, kanonische Gameplay-Hashes, Auswahlzustand und Peer-Kompatibilität.
-- Nativer SMAPI-Content-Pack-Lader mit isolierten Fehlern pro Variante und struktureller Map-Prüfung.
-- Versionierte Auswahl pro Gebäudeinstanz und exaktem Zielvertrag in `Building.modData`.
-- Host-autoritative Farmhand-Requests, Varianten-Fingerprint-Handshake und Client-Reconcile nach NetField-Synchronisierung.
-- Konsolenbefehle `sic targets`, `sic list`, `sic current`, `sic set` und `sic vanilla`.
-- Strenger Leere-Raum-Check vor expliziten Wechseln; keine automatischen Moves oder Deletes.
-- Golden-Master-Vertrag für Deluxe Barn: `Warp`, `AutoFeed`, `ProduceArea` und zwölf `Trough`-Tiles gegen Stardew 1.6.15 verifiziert.
-- Isoliertes, vollständig eigenes Smoke-Fixture für Content-Pack-Discovery und Map-Laden.
-- Core-eigene Managed-Map-Proxies mit Vanilla-Fallback vor erfolgreichem Farmhand-Handshake und Zugangs-Quarantäne bei fehlender Hash-Parität.
-- Atomarer Map-/Auswahl-Apply mit Rollback sowie erneuter Validierung der tatsächlich aufgelösten Runtime-Map.
-- Vollständiger Warp-, Barn-Kapazitäts- und One-way-Location-Flag-Vertrag.
-- Fail-closed Schutz gegen Pack-Symlinks/Junctions und Gameplay-Abhängigkeiten außerhalb von `GameplayRoot`.
-- OS-konsistente physische Pfadgrenzen sowie frühe Prüfung fehlender lokaler TMX-/TSX-Bilddateien bei weiterhin erlaubten Vanilla-GameContent-Tilesheets.
-- SaveLoaded-spezifischer exakter Custom-Restore mit persistenter Leerraum-Quarantäne nach fehlenden, geänderten oder fehlgeschlagenen Varianten.
-- Korrekte Host-Autorisierung für lokalen Split-Screen und erzwungener lokaler Farmhand-Reload ohne Wiederverwendung von Stardews Multiplayer-Map-Cache.
-- Gebäudeinstanz-spezifische Proxy-Keys und Client-Attestierung verhindern Cache-Reloads und Freigaben über mehrere Scheunen hinweg; der Farmhand-Zugangs-Guard läuft fail-closed pro Tick.
+- Initial project contract for a SMAPI-based interior selector.
+- MVP scope limited to `Greenhouse` and `DeluxeBarn`.
+- Versioned interior-pack schema with `FormatVersion: 1`.
+- Host-authorized multiplayer contract with exact gameplay hashes on every peer.
+- Fail-closed safety boundaries for layout changes and missing or mismatched packs.
+- Non-installable schema example without game or third-party assets.
+- Documented licensing and adapter boundary for third-party content.
+- Game-independent Core domain for the registry, path safety, canonical gameplay hashes, selection state, and peer compatibility.
+- Native SMAPI content-pack loader with isolated per-variant failures and structural map validation.
+- Versioned selection per building instance with an exact target contract in `Building.modData`.
+- Host-authoritative Farmhand requests, variant-fingerprint handshake, and client reconciliation after NetField synchronization.
+- Console commands `sic targets`, `sic list`, `sic current`, `sic set`, and `sic vanilla`.
+- Strict empty-interior check before explicit changes; no automatic moves or deletions.
+- Golden-master contract for Deluxe Barn: `Warp`, `AutoFeed`, `ProduceArea`, and twelve `Trough` tiles verified against Stardew 1.6.15.
+- Isolated, entirely original smoke fixture for content-pack discovery and map loading.
+- Core-owned managed-map proxies with a Vanilla fallback before a successful Farmhand handshake and access quarantine when hash parity is missing.
+- Atomic map-and-selection apply with rollback and renewed validation of the map resolved at runtime.
+- Complete contract for warps, barn capacity, and one-way location flags.
+- Fail-closed protection against pack symlinks/junctions and gameplay dependencies outside `GameplayRoot`.
+- OS-consistent physical path boundaries and early validation of missing local TMX/TSX image files while continuing to allow Vanilla GameContent tilesheets.
+- Exact `SaveLoaded`-specific custom restore with persistent empty-interior quarantine after missing, changed, or failed variants.
+- Correct host authorization for local split-screen and forced local Farmhand reload without reusing Stardew's multiplayer map cache.
+- Building-instance-specific proxy keys and client attestation prevent cache reloads and approvals from leaking across multiple barns; the Farmhand access guard fails closed on every tick.
 
 ### Changed
 
-- Live-Tests, Fixtures und Reviews wurden vollständig auf das öffentliche SDVKit migriert; dabei gefundene generische Fixture-Lücken wurden upstream in SDVKit behoben. `single` bleibt Standard und `network-2` ausdrücklich angeforderten Multiplayer-Abnahmen vorbehalten.
+- Translated repository-facing documentation, contributor guidance, and schema example labels to English.
+- Live tests, fixtures, and reviews were fully migrated to the public SDVKit; generic fixture gaps found during the migration were fixed upstream in SDVKit. `single` remains the default, and `network-2` is reserved for explicitly requested multiplayer validation.
 
 ### Removed
 
-- Den ehemaligen projektspezifischen Ingame-QA-Harness samt `sicqa`-Befehlen entfernt, nachdem SDVKit dessen Save-, Fixture-, Prozess-, Screenshot- und Multiplayer-Aufgaben übernommen hat.
+- Removed the former project-specific in-game QA harness and its `sicqa` commands after SDVKit took over its save, fixture, process, screenshot, and multiplayer responsibilities.
 
 ### Fixed
 
-- Frisch gebaute Deluxe-Scheunen werden nicht länger durch Stardews fest eingebauten Feed Hopper `(BC)99` als vermeintlich belegter Innenraum blockiert; echte platzierte Objekte bleiben Blocker.
+- Newly built Deluxe Barns are no longer treated as occupied because of Stardew's built-in Feed Hopper `(BC)99`; genuinely placed objects remain blockers.
