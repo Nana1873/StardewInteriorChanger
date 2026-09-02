@@ -1,0 +1,11 @@
+{
+  "Name": "Stardew Interior Changer",
+  "Author": "StardewInteriorChanger",
+  "Version": "%ProjectVersion%",
+  "Description": "Select compatible interiors for individual farm buildings.",
+  "UniqueID": "StardewInteriorChanger.Core",
+  "EntryDll": "StardewInteriorChanger.dll",
+  "MinimumApiVersion": "4.5.2",
+  "MinimumGameVersion": "1.6.15",
+  "UpdateKeys": []
+}

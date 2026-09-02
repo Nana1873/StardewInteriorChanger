@@ -1,0 +1,12 @@
+{
+  "Name": "Interior Changer Smoke Fixture",
+  "Author": "Stardew Interior Changer contributors",
+  "Version": "0.1.0",
+  "Description": "Developer-only playable map used to verify native content-pack discovery and live switching.",
+  "UniqueID": "StardewInteriorChanger.SmokeFixture",
+  "UpdateKeys": [],
+  "ContentPackFor": {
+    "UniqueID": "StardewInteriorChanger.Core",
+    "MinimumVersion": "0.1.0"
+  }
+}

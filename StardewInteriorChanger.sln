@@ -1,0 +1,33 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StardewInteriorChanger.Core", "src\StardewInteriorChanger.Core\StardewInteriorChanger.Core.csproj", "{A73041C4-AF1A-4CBA-B8C5-C827D0A7C101}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StardewInteriorChanger", "src\StardewInteriorChanger\StardewInteriorChanger.csproj", "{8E40B331-42B7-481E-8F27-1B3B435DE72E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StardewInteriorChanger.Core.Tests", "tests\StardewInteriorChanger.Core.Tests\StardewInteriorChanger.Core.Tests.csproj", "{BDF7B1BA-EA90-446D-B432-33EC61EE6B09}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A73041C4-AF1A-4CBA-B8C5-C827D0A7C101}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A73041C4-AF1A-4CBA-B8C5-C827D0A7C101}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A73041C4-AF1A-4CBA-B8C5-C827D0A7C101}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A73041C4-AF1A-4CBA-B8C5-C827D0A7C101}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E40B331-42B7-481E-8F27-1B3B435DE72E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E40B331-42B7-481E-8F27-1B3B435DE72E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E40B331-42B7-481E-8F27-1B3B435DE72E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E40B331-42B7-481E-8F27-1B3B435DE72E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDF7B1BA-EA90-446D-B432-33EC61EE6B09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDF7B1BA-EA90-446D-B432-33EC61EE6B09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDF7B1BA-EA90-446D-B432-33EC61EE6B09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDF7B1BA-EA90-446D-B432-33EC61EE6B09}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

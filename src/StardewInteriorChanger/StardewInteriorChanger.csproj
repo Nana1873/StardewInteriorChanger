@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>StardewInteriorChanger</AssemblyName>
+    <RootNamespace>StardewInteriorChanger</RootNamespace>
+    <Version>0.1.0</Version>
+    <ModFolderName>Stardew Interior Changer</ModFolderName>
+    <EnableModDeploy>false</EnableModDeploy>
+    <EnableGameDebugging>false</EnableGameDebugging>
+    <BundleExtraAssemblies>ThirdParty</BundleExtraAssemblies>
+    <IgnoreModFilePatterns>\.pdb$</IgnoreModFilePatterns>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <ProjectReference Include="..\StardewInteriorChanger.Core\StardewInteriorChanger.Core.csproj" />
+  </ItemGroup>
+</Project>

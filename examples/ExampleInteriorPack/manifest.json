@@ -1,0 +1,14 @@
+{
+  "Name": "Example Interior Pack (Schema Only)",
+  "Author": "Stardew Interior Changer contributors",
+  "Version": "0.0.0",
+  "Description": "Authoring-only schema example. Its map asset is intentionally missing; do not install or publish this as a release pack.",
+  "UniqueID": "StardewInteriorChanger.Example.SchemaOnly",
+  "MinimumApiVersion": "4.5.2",
+  "UpdateKeys": [],
+  "ContentPackFor": {
+    "UniqueID": "StardewInteriorChanger.Core",
+    "MinimumVersion": "0.1.0"
+  }
+}
+

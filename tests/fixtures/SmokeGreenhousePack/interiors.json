@@ -1,0 +1,12 @@
+{
+  "FormatVersion": 1,
+  "Interiors": [
+    {
+      "Id": "smoke-greenhouse",
+      "DisplayName": "Smoke Greenhouse",
+      "Target": "Greenhouse",
+      "GameplayRoot": "assets/gameplay/smoke-greenhouse",
+      "Map": "map.tmx"
+    }
+  ]
+}
