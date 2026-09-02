@@ -1,0 +1,26 @@
+name: Core tests (no game)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests:
+    name: Core tests (no game)
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run game-free Core tests
+        run: dotnet test tests/StardewInteriorChanger.Core.Tests/StardewInteriorChanger.Core.Tests.csproj --configuration Release --artifacts-path .sdvkit/ci

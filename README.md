@@ -58,6 +58,8 @@ Die kanonischen relativen Ziele sind:
 - Unit-Tests: `tests\StardewInteriorChanger.Core.Tests`
 - Review-Pack: `tests\fixtures\SmokeGreenhousePack`
 
+Die GitHub-CI führt ausschließlich die spieldateifreien Core-Tests aus. Vollständiger Mod-Build, Packaging, SMAPI-Load und Ingame-Reviews bleiben lokale SDVKit-Prüfungen.
+
 Automatische Prüfschritte bleiben getrennt bewertbar:
 
 ```powershell
