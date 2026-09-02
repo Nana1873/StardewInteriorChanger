@@ -54,7 +54,7 @@ public sealed class ModEntry : Mod
 
         helper.ConsoleCommands.Add(
             "sic",
-            "Interior Changer commands: sic targets | sic list | sic current | " +
+            "Interior Changer commands: sic targets | sic list | sic current [buildingId] | " +
             "sic set <variantId> [buildingId] | sic vanilla [buildingId]",
             OnConsoleCommand);
     }
@@ -727,7 +727,7 @@ public sealed class ModEntry : Mod
                 ListVariants();
                 break;
             case "current":
-                ShowCurrentSelection();
+                ShowCurrentSelection(args.ElementAtOrDefault(1));
                 break;
             case "set" when args.Length >= 2:
                 RequestSelection(args[1], args.ElementAtOrDefault(2));
@@ -737,7 +737,7 @@ public sealed class ModEntry : Mod
                 break;
             default:
                 Monitor.Log(
-                    "Usage: sic targets | sic list | sic current | " +
+                    "Usage: sic targets | sic list | sic current [buildingId] | " +
                     "sic set <variantId> [buildingId] | sic vanilla [buildingId]",
                     LogLevel.Info);
                 break;
@@ -787,9 +787,9 @@ public sealed class ModEntry : Mod
             LogLevel.Info);
     }
 
-    private void ShowCurrentSelection()
+    private void ShowCurrentSelection(string? buildingToken)
     {
-        if (!TryResolveCommandBuilding(null, out Building building, out InteriorTarget target))
+        if (!TryResolveCommandBuilding(buildingToken, out Building building, out InteriorTarget target))
         {
             return;
         }

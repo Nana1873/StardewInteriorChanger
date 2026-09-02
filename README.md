@@ -80,12 +80,12 @@ After loading a save, the following commands are available in the SMAPI console:
 ```text
 sic targets
 sic list
-sic current
+sic current [buildingId]
 sic set <variantId> [buildingId]
 sic vanilla [buildingId]
 ```
 
-`sic targets` displays the stable building IDs. A real map change runs only when the interior is empty: it must contain no player, animal, placed object, furniture, crop, or other persistent content. Stardew's built-in Feed Hopper `(BC)99` in animal houses counts as building equipment rather than a player-placed object and remains in place during a map change. The MVP therefore never deletes or moves save content. Stored custom maps are restored automatically during a normal save load only when the ID and stored gameplay hash exactly match the installed pack. If the Core previously encountered a missing, changed, or unloadable pack, it sets a persistent quarantine marker; a later restore then also requires an empty interior. Explicitly adopting the already loaded Vanilla map does not change the map and can safely clear this marker with `sic vanilla`.
+`sic targets` displays the stable building IDs. `sic current` inspects the supported interior the player is currently inside; pass a building ID to inspect that target from anywhere. A real map change runs only when the interior is empty: it must contain no player, animal, placed object, furniture, crop, or other persistent content. Stardew's built-in Feed Hopper `(BC)99` in animal houses counts as building equipment rather than a player-placed object and remains in place during a map change. The MVP therefore never deletes or moves save content. Stored custom maps are restored automatically during a normal save load only when the ID and stored gameplay hash exactly match the installed pack. If the Core previously encountered a missing, changed, or unloadable pack, it sets a persistent quarantine marker; a later restore then also requires an empty interior. Explicitly adopting the already loaded Vanilla map does not change the map and can safely clear this marker with `sic vanilla`.
 
 The local game path is stored in a Git-ignored `.csproj.user` file. On another machine, set it once there or pass it with `-p:GamePath="..."`. Automatic deployment to the normal `Mods` directory is disabled in the project.
 
@@ -98,7 +98,7 @@ sdvkit lab test-save --topology single --json
 sdvkit project review start .\src\StardewInteriorChanger `
   --topology single `
   --test-save `
-  --companion <bereites-ConsoleCommands-Modverzeichnis> `
+  --companion <prepared-ConsoleCommands-mod-directory> `
   --content-pack .\tests\fixtures\SmokeGreenhousePack `
   --json
 sdvkit project review status --topology single --json
@@ -113,7 +113,7 @@ sdvkit project review stop --topology single --json
 sdvkit project review start .\src\StardewInteriorChanger `
   --topology single `
   --test-save `
-  --companion <bereites-ConsoleCommands-Modverzeichnis> `
+  --companion <prepared-ConsoleCommands-mod-directory> `
   --content-pack .\tests\fixtures\SmokeGreenhousePack `
   --json
 # Verify persistence and Vanilla restore, save, and stop again.
