@@ -41,4 +41,5 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Fixed
 
+- `sic current <buildingId>` now inspects the requested supported building instead of ignoring the optional building ID.
 - Newly built Deluxe Barns are no longer treated as occupied because of Stardew's built-in Feed Hopper `(BC)99`; genuinely placed objects remain blockers.
