@@ -1,66 +1,66 @@
 # Stardew Interior Changer
 
-Stardew Interior Changer ist ein SMAPI-Framework, mit dem Spieler registrierte Innenraumvarianten für unterstützte Farmgebäude auswählen können. Das Gebäude und sein gespeicherter Spielzustand bleiben dabei erhalten; ausgetauscht wird ausschließlich die dafür registrierte Innenraum-Map.
+Stardew Interior Changer is a SMAPI framework that lets players select registered interior variants for supported farm buildings. The building and its saved game state remain intact; only the registered interior map is replaced.
 
-> **Projektstatus:** funktionaler MVP-Prototyp, noch kein veröffentlichter Mod-Release. Release-Build, 38 Core-Tests, echte Greenhouse-/Deluxe-Barn-Wechsel, Save-/Prozess-Restore und die positive Host/Farmhand-Strecke sind verifiziert. Live-Smoke, Fixtures und Reviews laufen kanonisch über die weiter unten im README gepinnte öffentliche SDVKit-Version. Negative Multiplayer-Paritätsfälle wie ein fehlendes Pack oder ein abweichender Gameplay-Hash sind noch nicht live mit zwei Prozessen abgenommen. Das Pack unter `examples/` bleibt ausschließlich ein nicht installierbares Schema-Beispiel.
+> **Project status:** functional MVP prototype; no mod release has been published yet. The Release build, 38 Core tests, real Greenhouse/Deluxe Barn changes, save/process restore, and the positive Host/Farmhand path are verified. Live smoke tests, fixtures, and reviews run canonically through the public SDVKit version pinned below. Negative multiplayer parity cases such as a missing pack or mismatched gameplay hash have not yet been validated live with two processes. The pack under `examples/` remains a non-installable schema example only.
 
-## Ziel des MVP
+## MVP scope
 
-- `Greenhouse` als einmaliger Innenraum der Farm.
-- `DeluxeBarn` als separat auswählbarer Innenraum pro Gebäudeinstanz.
-- Vanilla als explizite, sichere Auswahl.
-- Native Interior-Packs mit einem kleinen, versionierten Schema.
-- Host-autorisierte Auswahl und Speicherung im gemeinsamen Save.
-- Sicherheitsprüfung vor jedem Wechsel; keine stillen Löschungen oder Verschiebungen.
-- Multiplayer-Abgleich von Core-Mod und exaktem Gameplay-Hash jeder verwendeten Variante.
+- `Greenhouse` as the farm's single greenhouse interior.
+- `DeluxeBarn` as a separately selectable interior for each building instance.
+- Vanilla as an explicit, safe selection.
+- Native interior packs with a small, versioned schema.
+- Host-authorized selection stored in the shared save.
+- Safety validation before every change, with no silent deletions or relocation.
+- Multiplayer parity for the Core mod and the exact gameplay hash of every selected variant.
 
-Nicht Teil des MVP sind Farmhaus-Umbauten, die automatische Migration beliebiger Layouts und der automatische Import bestehender Content-Patcher- oder XNB-Replacer.
+Farmhouse conversions, automatic migration of arbitrary layouts, and automatic import of existing Content Patcher or XNB replacers are outside the MVP scope.
 
-## Multiplayer-Vertrag
+## Multiplayer contract
 
-Die Auswahl ist gemeinsamer Weltzustand und wird deshalb ausschließlich vom Host bestätigt und gespeichert. Farmhands senden eine Auswahl-Anfrage; nur der Host validiert Map, Inhalt und Peer-Parität und ändert anschließend den gemeinsamen Save.
+The selection is shared world state, so only the Host confirms and stores it. Farmhands send a selection request; only the Host validates the map, content, and peer parity before changing the shared save.
 
-Für eine benutzerdefinierte Variante müssen auf **allen Peers** vorhanden sein:
+To use a custom variant, every **peer** must have:
 
-1. Stardew Interior Changer Core in einer kompatiblen Protokollversion;
-2. dieselbe globale Varianten-ID (`<PackUniqueID>/<Id>`);
-3. derselbe vom Core berechnete Gameplay-Hash.
+1. Stardew Interior Changer Core with a compatible protocol version;
+2. the same global variant ID (`<PackUniqueID>/<Id>`);
+3. the same gameplay hash calculated by the Core.
 
-Der Hash umfasst die kanonische gameplay-relevante Variantendefinition und alle Dateien unter `GameplayRoot`. `DisplayName` und ein Preview außerhalb von `GameplayRoot` sind rein lokal/kosmetisch und werden nicht einbezogen; eine Preview-Datei innerhalb des Roots wird ausnahmslos mitgehasht. Bei fehlender Variante oder abweichendem Hash wird kein benutzerdefinierter Wechsel freigegeben und die gespeicherte Auswahl nicht stillschweigend geändert.
+The hash covers the canonical gameplay-relevant variant definition and every file under `GameplayRoot`. `DisplayName` and a preview outside `GameplayRoot` are local/cosmetic and excluded; a preview file inside the root is always hashed. A missing variant or mismatched hash prevents a custom change and never silently alters the stored selection.
 
-Custom-Maps werden nicht mit dem internen Asset-Key eines Content-Packs im Save synchronisiert. Der Core vergibt stabile eigene Proxy-Keys pro Gebäudeinstanz, damit etwa zwei Scheunen mit derselben Variante unabhängig und ohne gemeinsamen Cache-Reload behandelt werden. Ein Farmhand mit installiertem Core erhält bis zum erfolgreichen Host-Handshake eine geprüfte Vanilla-Fallback-Map; bei fehlender oder abweichender Variante bleibt dieser Fallback aktiv und der Zugang zum betroffenen Custom-Interior wird blockiert. Der Core muss deshalb vor dem Beitritt auf jedem Peer installiert sein. Die positive Strecke ist mit zwei echten lokalen SMAPI-Prozessen verifiziert: Farmhand-Beitritt, Registry-Handshake, Request an den Host, host-autorisierter Apply und Reconcile auf denselben Vanilla- beziehungsweise Proxy-Map-Key. Missing-Pack- und Hash-Mismatch-Fälle sind durch Core-Tests abgedeckt, aber noch nicht live mit zwei Prozessen abgenommen.
+Custom maps are not synchronized in the save using a content pack's internal asset key. The Core assigns stable proxy keys per building instance so, for example, two barns using the same variant remain independent without sharing cache reloads. A Farmhand with the Core installed resolves a validated Vanilla fallback map until the Host handshake succeeds; if a variant is missing or mismatched, the fallback remains active and access to the affected custom interior is blocked. The Core must therefore be installed on every peer before joining. The positive path has been verified with two real local SMAPI processes: Farmhand join, registry handshake, request to the Host, Host-authorized apply, and reconciliation to the same Vanilla or proxy map key. Missing-pack and hash-mismatch cases are covered by Core tests but have not yet been validated live with two processes.
 
-Lokaler Split-Screen läuft auf dem Host-Rechner und verwendet deshalb direkt dessen geprüfte Registry statt der Quarantäne für entfernte Farmhands. Der Core muss auch beim Laden und Speichern des Saves installiert bleiben: Eine komplette Session ohne Core kann naturgemäß nicht als unsicher markiert werden. Wurde ein Save ohne Core weitergespielt, sollte ein Custom-Interior vor der Reaktivierung geleert oder die bereits geladene Vanilla-Map mit `sic vanilla` übernommen werden.
+Local split-screen runs on the Host machine and therefore uses its validated registry directly instead of the quarantine applied to remote Farmhands. The Core must remain installed while loading and saving: a full session played without the Core cannot be marked unsafe. If a save was continued without the Core, empty a custom interior before reactivating it or explicitly adopt the already loaded Vanilla map with `sic vanilla`.
 
-Diese strengere Regel ist Absicht: Content Patcher lädt Maps lokal. Ohne dieselben Maps können Spieler unterschiedliche Geometrie und Begrenzungen sehen. Siehe [Content Patcher: Multiplayer](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/README.md#multiplayer).
+This stricter rule is intentional: Content Patcher loads maps locally. Without identical maps, players can see different geometry and boundaries. See [Content Patcher: Multiplayer](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/README.md#multiplayer).
 
-## Sicherheitsgrenzen
+## Safety boundaries
 
-- Ein Wechsel findet nur nach erfolgreicher Validierung statt.
-- Der Core löscht und verschiebt keine Tiere, Objekte, Maschinen, Möbel, Pflanzen oder andere gespeicherte Entitäten automatisch.
-- Kann die Ziel-Map den vorhandenen Zustand nicht sicher aufnehmen, wird der Wechsel abgelehnt.
-- Auch der Wechsel zurück zu Vanilla durchläuft dieselbe Validierung.
-- Pack-Pfade müssen innerhalb des jeweiligen Pack-Verzeichnisses bleiben; absolute Pfade und `..`-Ausbrüche werden abgelehnt.
-- Symlinks und Junctions innerhalb eines Pack-Dateibaums werden fail-closed abgelehnt.
-- Pack-lokale TMX-, TSX- und Tilesheet-Abhängigkeiten müssen unter `GameplayRoot` liegen und werden damit gehasht.
-- Fehlende oder ungültige Pack-Dateien deaktivieren die betroffene Variante, nicht den gesamten Save.
-- Ein Content-Pack ist Dateninhalt, kein Mechanismus zum Nachladen oder Ausführen fremden Codes.
+- A change happens only after successful validation.
+- The Core never automatically deletes or moves animals, objects, machines, furniture, crops, or other stored entities.
+- If the target map cannot safely contain the existing state, the change is rejected.
+- Changing back to Vanilla passes through the same validation.
+- Pack paths must stay within their pack directory; absolute paths and `..` escapes are rejected.
+- Symlinks and junctions within a pack tree are rejected fail-closed.
+- Pack-local TMX, TSX, and tilesheet dependencies must be under `GameplayRoot` and are therefore hashed.
+- Missing or invalid pack files disable the affected variant, not the entire save.
+- A content pack is data, not a mechanism for loading or executing foreign code.
 
-Die technische Aufteilung und die bewusst noch offenen Runtime-Entscheidungen stehen in [docs/architecture.md](docs/architecture.md).
+The technical structure and deliberately open runtime decisions are documented in [docs/architecture.md](docs/architecture.md).
 
-## Entwicklung und Prüfung mit SDVKit
+## Development and validation with SDVKit
 
-Voraussetzungen für den aktuellen Projektvertrag sind Stardew Valley 1.6.15, SMAPI 4.5.2 und zum Bauen das .NET 8 SDK. Der Mod selbst zielt passend zum Spiel auf .NET 6. Live-Prüfungen verwenden ausschließlich das frisch heruntergeladene öffentliche [SDVKit v0.5.3](https://github.com/Nana1873/SDVKit/releases/tag/v0.5.3) mit dem erwarteten ZIP-SHA-256 `54cb3d93bc46599fba339962a2a4f20f27c3ea2f92a0a29e60c57e712cb3cd1a`; ein lokaler SDVKit-Source-Build ist keine Ersatzlaufzeit. Das Kommando `sdvkit` in den folgenden Beispielen bezeichnet die unter `.sdvkit/` entpackte öffentliche Binärdatei.
+The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.5.3](https://github.com/Nana1873/SDVKit/releases/tag/v0.5.3) with the expected ZIP SHA-256 `54cb3d93bc46599fba339962a2a4f20f27c3ea2f92a0a29e60c57e712cb3cd1a`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
 
-Die kanonischen relativen Ziele sind:
+The canonical relative targets are:
 
 - Mod: `src\StardewInteriorChanger`
-- Unit-Tests: `tests\StardewInteriorChanger.Core.Tests`
-- Review-Pack: `tests\fixtures\SmokeGreenhousePack`
+- Unit tests: `tests\StardewInteriorChanger.Core.Tests`
+- Review pack: `tests\fixtures\SmokeGreenhousePack`
 
-Die GitHub-CI führt ausschließlich die spieldateifreien Core-Tests aus. Vollständiger Mod-Build, Packaging, SMAPI-Load und Ingame-Reviews bleiben lokale SDVKit-Prüfungen.
+GitHub CI runs only the game-free Core tests. Full mod builds, packaging, SMAPI loading, and in-game reviews remain local SDVKit checks.
 
-Automatische Prüfschritte bleiben getrennt bewertbar:
+Automated validation steps remain independently assessable:
 
 ```powershell
 sdvkit doctor --json
@@ -71,11 +71,11 @@ sdvkit project package .\src\StardewInteriorChanger --json
 sdvkit project smoke .\src\StardewInteriorChanger --topology single --json
 ```
 
-SDVKit hält Builds, Pakete, Profile, Saves, Staging, Logs, Screenshots und Prozesszustand unter `.sdvkit/`. Normale Saves, normale beziehungsweise mod-manager-eigene Mods und Vortex-Staging bleiben außerhalb des Workflows.
+SDVKit keeps builds, packages, profiles, saves, staging, logs, screenshots, and process state under `.sdvkit/`. Normal saves, normal or mod-manager-owned mods, and Vortex staging remain outside the workflow.
 
-## Aktuelle Entwicklerbefehle
+## Current developer commands
 
-Nach dem Laden eines Saves stehen in der SMAPI-Konsole bereit:
+After loading a save, the following commands are available in the SMAPI console:
 
 ```text
 sic targets
@@ -85,13 +85,13 @@ sic set <variantId> [buildingId]
 sic vanilla [buildingId]
 ```
 
-`sic targets` zeigt die stabilen Gebäude-IDs. Ein echter Kartenwechsel wird nur bei leerem Innenraum ausgeführt: kein Spieler, Tier, platziertes Objekt, Möbelstück, Crop oder anderer persistenter Inhalt darf sich darin befinden. Stardews fest eingebauter Feed Hopper `(BC)99` in Tierhäusern zählt dabei als Gebäudeausstattung und nicht als platziertes Spielerobjekt; er bleibt beim Mapwechsel erhalten. Dadurch löscht oder verschiebt der MVP niemals Save-Inhalt. Bereits gespeicherte Custom-Maps werden beim normalen Save-Load nur dann automatisch wiederhergestellt, wenn ID und gespeicherter Gameplay-Hash exakt zum installierten Pack passen. Hat der Core zwischenzeitlich ein fehlendes, geändertes oder nicht ladbares Pack gesehen, setzt er eine persistente Quarantänemarkierung; eine spätere Wiederherstellung verlangt dann ebenfalls einen leeren Innenraum. Ein reines Übernehmen der bereits geladenen Vanilla-Map verändert keine Map und kann diese Markierung sicher per `sic vanilla` auflösen.
+`sic targets` displays the stable building IDs. A real map change runs only when the interior is empty: it must contain no player, animal, placed object, furniture, crop, or other persistent content. Stardew's built-in Feed Hopper `(BC)99` in animal houses counts as building equipment rather than a player-placed object and remains in place during a map change. The MVP therefore never deletes or moves save content. Stored custom maps are restored automatically during a normal save load only when the ID and stored gameplay hash exactly match the installed pack. If the Core previously encountered a missing, changed, or unloadable pack, it sets a persistent quarantine marker; a later restore then also requires an empty interior. Explicitly adopting the already loaded Vanilla map does not change the map and can safely clear this marker with `sic vanilla`.
 
-Der lokale Spielpfad liegt in einer von Git ignorierten `.csproj.user`-Datei. Auf einem anderen Rechner kann er einmalig dort oder mit `-p:GamePath="..."` angegeben werden. Automatisches Deploy in den normalen `Mods`-Ordner ist im Projekt deaktiviert.
+The local game path is stored in a Git-ignored `.csproj.user` file. On another machine, set it once there or pass it with `-p:GamePath="..."`. Automatic deployment to the normal `Mods` directory is disabled in the project.
 
-## Funktionale und visuelle Review
+## Functional and visual review
 
-Die lokale Ingame-Abnahme folgt dem öffentlichen SDVKit-Skill `sdv-project-review`. Das SDVKit-eigene Testsave wird vorbereitet und anschließend ausdrücklich für den Review ausgewählt. Das vorhandene ConsoleCommands-Mod wird nur als expliziter Companion für `debug sleep` mitgegeben:
+Local in-game validation follows the public SDVKit skill `sdv-project-review`. Prepare SDVKit's own test save, then explicitly select it for the review. The existing ConsoleCommands mod is supplied only as an explicit companion for `debug sleep`:
 
 ```powershell
 sdvkit lab test-save --topology single --json
@@ -104,9 +104,9 @@ sdvkit project review start .\src\StardewInteriorChanger `
 sdvkit project review status --topology single --json
 ```
 
-Generischer Weltzustand wird ausschließlich über die begrenzten `sdvkit fixture ...`-Konsolenbefehle vorbereitet. Die eigentliche Modfunktion wird über `sic targets`, `sic list`, `sic current`, `sic set` und `sic vanilla` geprüft. Screenshots entstehen ausschließlich über `sdvkit screenshot <label>`; akzeptiert werden sie erst nach konkreter AlwaysOn-Bestätigung, vorhandener PNG und echter visueller Prüfung. `commandWritten=true` belegt nur die Zustellung eines Konsolenbefehls.
+Generic world state is prepared exclusively through the bounded `sdvkit fixture ...` console commands. Validate the mod itself through `sic targets`, `sic list`, `sic current`, `sic set`, and `sic vanilla`. Create screenshots only through `sdvkit screenshot <label>`; accept them only after explicit AlwaysOn confirmation, a present PNG, and real visual inspection. `commandWritten=true` proves only that a console command was delivered.
 
-Ein Review mit Testsave umfasst einen echten Prozess-Neustart mit derselben Work-Copy. Nach finalem Save und Stop wird ausschließlich über SDVKit zurückgesetzt:
+A review using the test save includes a real process restart with the same work copy. After the final save and stop, reset exclusively through SDVKit:
 
 ```powershell
 sdvkit project review stop --topology single --json
@@ -116,56 +116,56 @@ sdvkit project review start .\src\StardewInteriorChanger `
   --companion <bereites-ConsoleCommands-Modverzeichnis> `
   --content-pack .\tests\fixtures\SmokeGreenhousePack `
   --json
-# Persistenz und Vanilla-Restore prüfen, speichern und erneut stoppen.
+# Verify persistence and Vanilla restore, save, and stop again.
 sdvkit project review stop --topology single --json
 sdvkit project review reset --topology single --json
 ```
 
-`single` ist der Standard. `network-2` wird nur für ausdrücklich verlangte Multiplayer-Abnahmen verwendet und folgt ausschließlich dem SDVKit-Lifecycle: mit der expliziten Auswahl starten, beide Rollen prüfen, stoppen, mit exakt derselben Auswahl neu starten, erneut stoppen und abschließend `project review reset --topology network-2 --json` ausführen. Es gibt in diesem Repository keinen eigenen Stager, Launcher oder Zwei-Prozess-Controller.
+`single` is the default. Use `network-2` only for explicitly requested multiplayer validation and follow the SDVKit lifecycle exclusively: start with the explicit selection, validate both roles, stop, restart with exactly the same selection, stop again, and finally run `project review reset --topology network-2 --json`. This repository has no custom stager, launcher, or two-process controller.
 
-Verifiziert sind fachlich:
+The following behavior is verified:
 
-- Greenhouse und zwei voneinander unabhängige Deluxe Barns mit Vanilla- und Custom-Wechseln;
-- Blocker für echte platzierte Objekte, Spieler und Tiere bei unverändert erhaltenem eingebautem Feed Hopper;
-- Save, kompletter Prozess-Neustart und exakter Restore der gewählten Maps und gespeicherten Entitäten;
-- ein echter zweiter Farmhand über Stardews New-Farmhand-Flow;
-- Farmhand-Requests für Vanilla und Custom, host-autorisierter Apply sowie identische Ziel-Map auf Host und Client.
+- a Greenhouse and two independent Deluxe Barns with Vanilla and custom changes;
+- blockers for genuinely placed objects, players, and animals while preserving the built-in Feed Hopper unchanged;
+- save, full process restart, and exact restore of the selected maps and stored entities;
+- a real second Farmhand through Stardew's New Farmhand flow;
+- Farmhand requests for Vanilla and custom variants, Host-authorized apply, and an identical target map on Host and client.
 
-Nicht als live bewiesen gelten bisher Missing-Pack-/Hash-Mismatch-Fälle, ein Peer ohne Core, ein verzögerter Handshake bei bereits belegtem Custom-Interior und das Remote-Spieler-Occupancy-Gate.
+Missing-pack and hash-mismatch cases, a peer without the Core, a delayed handshake while a custom interior is already occupied, and the remote-player occupancy gate are not yet considered proven live.
 
-## Interior-Packs
+## Interior packs
 
-Interior-Packs sind native SMAPI-Content-Packs für `StardewInteriorChanger.Core`, keine gewöhnlichen Content-Patcher-Replacer. Einstieg, Schema und Hash-Grenze sind in [docs/content-packs.md](docs/content-packs.md) dokumentiert.
+Interior packs are native SMAPI content packs for `StardewInteriorChanger.Core`, not ordinary Content Patcher replacers. Setup, schema, and the hash boundary are documented in [docs/content-packs.md](docs/content-packs.md).
 
-SMAPI definiert dafür `manifest.json` und `ContentPackFor`; das eigentliche Pack-Schema gehört dem Core-Mod. Siehe die offiziellen SMAPI-Seiten zu [Content-Packs](https://stardewvalleywiki.com/Modding:Modder_Guide/APIs/Content_Packs) und zum [Manifest](https://stardewvalleywiki.com/Modding:Modder_Guide/APIs/Manifest).
+SMAPI defines `manifest.json` and `ContentPackFor`; the actual pack schema belongs to the Core mod. See the official SMAPI pages for [content packs](https://stardewvalleywiki.com/Modding:Modder_Guide/APIs/Content_Packs) and the [manifest](https://stardewvalleywiki.com/Modding:Modder_Guide/APIs/Manifest).
 
-## Warum bestehende Replacer nicht automatisch auswählbar sind
+## Why existing replacers cannot be selected automatically
 
-Content-Patcher-Packs stellen keinen Katalog eigenständiger Innenräume bereit. Sie patchen zur Laufzeit gemeinsame Assets:
+Content Patcher packs do not expose a catalog of independent interiors. They patch shared assets at runtime:
 
-- `Load` ersetzt ein vollständiges Asset; bei konkurrierenden Loadern wird nur einer ausgewählt.
-- `EditMap` kann Tiles, Eigenschaften und Warps überlagern.
-- Bedingungen, Tokens, Konfiguration, Abhängigkeiten und Lade-Reihenfolge können das Ergebnis verändern.
-- Spätere Patches erhalten bereits das zusammengeführte Ergebnis der vorherigen Patches.
+- `Load` replaces an entire asset; only one loader is selected when loaders conflict.
+- `EditMap` can overlay tiles, properties, and warps.
+- Conditions, tokens, configuration, dependencies, and load order can change the result.
+- Later patches receive the already combined result of earlier patches.
 
-Der Core könnte daher höchstens den aktuell aufgelösten Endzustand sehen. Daraus lassen sich die ursprünglichen Varianten, zulässigen Gebäudetypen, Ein-/Ausgänge, Abhängigkeiten und Rechte nicht zuverlässig rekonstruieren. Bestehende Innenräume benötigen ein natives Pack oder einen geprüften, erlaubten Adapter.
+The Core could therefore see only the currently resolved final state. It cannot reliably reconstruct the original variants, allowed building types, entrances/exits, dependencies, or permissions. Existing interiors require a native pack or a validated, permissioned adapter.
 
-Offizielle Details: [Content Patcher `Load`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-load.md), [`EditMap`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-editmap.md) und [Zusammenspiel mehrerer Patches](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide.md#how-do-multiple-patches-interact).
+Official details: [Content Patcher `Load`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-load.md), [`EditMap`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-editmap.md), and [how multiple patches interact](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide.md#how-do-multiple-patches-interact).
 
-## Fremdassets, Lizenzen und Adapter
+## Third-party assets, licensing, and adapters
 
-Core und offizielle Beispiel-Packs enthalten nur eigene Assets oder Inhalte, deren Lizenz die konkrete Nutzung und Weitergabe ausdrücklich erlaubt. Maps, Tilesheets, Vorschaubilder oder andere Dateien fremder Mods werden nicht ohne dokumentierte Erlaubnis kopiert oder neu veröffentlicht. Ein Credit oder Link ersetzt keine Erlaubnis.
+The Core and official example packs contain only original assets or content whose license explicitly permits the specific use and redistribution. Maps, tilesheets, preview images, or other files from third-party mods are not copied or republished without documented permission. Credit or a link does not replace permission.
 
-Ein veröffentlichter Drittanbieter-Adapter soll:
+A published third-party adapter should:
 
-- die Zustimmung des ursprünglichen Autors besitzen;
-- die Original-Mod nach Möglichkeit als separate Abhängigkeit voraussetzen;
-- nur notwendige Metadaten und Integrationslogik enthalten;
-- unterstützte Originalversionen und Abhängigkeiten dokumentieren;
-- keine Fremdassets enthalten, sofern deren Lizenz oder schriftliche Erlaubnis dies nicht eindeutig gestattet.
+- have the original author's consent;
+- require the original mod as a separate dependency whenever possible;
+- contain only the required metadata and integration logic;
+- document supported original versions and dependencies;
+- contain no third-party assets unless their license or written permission clearly allows it.
 
-Ist die Erlaubnis unklar, wird kein öffentlicher Adapter ausgeliefert. Nexus Mods verlangt für bestehende Nutzerinhalte eine Erlaubnis und stellt ausdrücklich klar, dass Namensnennung allein nicht genügt. Siehe [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
+If permission is unclear, no public adapter is shipped. Nexus Mods requires permission for existing user-created content and explicitly states that attribution alone is insufficient. See the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
 
-## Lizenz
+## License
 
-Die eigenen Inhalte dieses Repositorys stehen unter der [MIT-Lizenz](LICENSE). Diese Lizenz gilt ausschließlich für die eigenen Inhalte dieses Repositorys und überträgt keine Rechte an Stardew Valley oder fremden Content-Packs. Die Kompatibilität eines Interior-Packs mit diesem Core überträgt oder erweitert keine Rechte an dessen Assets; Pack-Autoren bleiben für Lizenz, Erlaubnisse und Credits ihrer Inhalte verantwortlich.
+This repository's original content is available under the [MIT License](LICENSE). The license applies only to this repository's original content and grants no rights to Stardew Valley or third-party content packs. Compatibility between an interior pack and this Core does not transfer or expand rights to the pack's assets; pack authors remain responsible for licensing, permissions, and credits for their content.

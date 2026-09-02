@@ -1,115 +1,115 @@
-# Architektur
+# Architecture
 
-Dieses Dokument beschreibt die Zielarchitektur und die verbindlichen Invarianten des MVP. Es ist keine Behauptung, dass jeder beschriebene Baustein bereits implementiert oder im Spiel verifiziert ist.
+This document describes the target architecture and binding invariants of the MVP. It does not claim that every described component is already implemented or verified in-game.
 
-## Leitgedanke
+## Core concept
 
-Ein Gebäude beziehungsweise eine gespeicherte `GameLocation` besitzt den persistenten Spielzustand. Die Map ist das geladene Asset für Layout, Tilesheets und Tile-Eigenschaften. Stardew Interior Changer wechselt eine registrierte Map, ohne die Identität der Location oder ihre gespeicherten Entitäten zu ersetzen.
+A building or stored `GameLocation` owns the persistent game state. The map is the loaded asset for layout, tilesheets, and tile properties. Stardew Interior Changer changes a registered map without replacing the location's identity or its stored entities.
 
-Diese Trennung entspricht der offiziellen Content-Patcher-Dokumentation: Die Location enthält unter anderem Objekte, Möbel, Pflanzen, NPCs und Spieler; die Map beschreibt Tiles und Eigenschaften. Siehe [Maps vs locations](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/custom-locations.md#maps-vs-locations).
+This separation follows the official Content Patcher documentation: the location contains objects, furniture, crops, NPCs, players, and other state, while the map describes tiles and properties. See [Maps vs locations](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/custom-locations.md#maps-vs-locations).
 
-## Bausteine
+## Components
 
-### Core-Mod
+### Core mod
 
-`StardewInteriorChanger.Core` ist der einzige aktive Codebaustein. Er entdeckt eigene SMAPI-Content-Packs, validiert deren Schema und Dateien, erstellt die Varianten-Registry und koordiniert Save, Wechsel und Multiplayer.
+`StardewInteriorChanger.Core` is the only active code component. It discovers its own SMAPI content packs, validates their schemas and files, builds the variant registry, and coordinates saves, changes, and multiplayer.
 
-### Varianten-Registry
+### Variant registry
 
-Jede Variante erhält die globale ID:
+Every variant receives the global ID:
 
 ```text
 <PackManifest.UniqueID>/<Interior.Id>
 ```
 
-`Id` bleibt innerhalb eines veröffentlichten Packs stabil. `Target` ist im MVP exakt `Greenhouse` oder `DeluxeBarn`; Dimensionen oder Dateinamen werden nicht zur Zielerkennung geraten.
+`Id` remains stable within a published pack. In the MVP, `Target` is exactly `Greenhouse` or `DeluxeBarn`; dimensions and filenames are never guessed to identify a target.
 
-### Gameplay-Hash
+### Gameplay hash
 
-Der Core berechnet einen SHA-256-Hash aus:
+The Core calculates a SHA-256 hash from:
 
-- der kanonischen gameplay-relevanten Variantendefinition;
-- allen Dateien unter `GameplayRoot` mit deterministischer Pfad- und Dateibehandlung.
+- the canonical gameplay-relevant variant definition;
+- every file under `GameplayRoot`, using deterministic path and file handling.
 
-Pack-Autoren tragen keinen Hash ein. `DisplayName` und ein `Preview` außerhalb von `GameplayRoot` sind davon ausgeschlossen, damit Übersetzungen und Vorschaubilder lokal variieren dürfen. Liegt die Preview-Datei innerhalb des Roots, wird sie wie jede andere Gameplay-Datei mitgehasht. Das konkrete Byte-Framing bleibt internes Protokolldetail und wird gemeinsam mit Protokolltests versioniert.
+Pack authors do not provide a hash. `DisplayName` and a `Preview` outside `GameplayRoot` are excluded so translations and preview images may vary locally. If the preview file is inside the root, it is hashed like every other gameplay file. The exact byte framing remains an internal protocol detail versioned together with protocol tests.
 
-### Auswahlzustand
+### Selection state
 
-Der Host besitzt die autoritative Zuordnung von Gebäudeinstanz zu globaler Varianten-ID. Für das Gewächshaus existiert eine eindeutige Zielinstanz; jede Deluxe-Scheune benötigt eine stabile Gebäudeidentität. Farmhands dürfen Anfragen stellen, aber weder Registry noch Save-Zuordnung direkt verändern.
+The Host owns the authoritative mapping from each building instance to a global variant ID. The Greenhouse has one unique target instance; every Deluxe Barn requires a stable building identity. Farmhands may send requests but cannot directly modify the registry or saved selection.
 
-## Ablauf
+## Flow
 
-### Start und Pack-Erkennung
+### Startup and pack discovery
 
-1. SMAPI lädt den Core und dessen eigene Content-Packs.
-2. Der Core liest `interiors.json` mit `FormatVersion: 1`.
-3. Schema, globale IDs, Targets und alle aufgelösten Pfade werden validiert.
-4. Der Core berechnet für jede gültige Variante den Gameplay-Hash.
-5. Nur vollständig gültige Varianten gelangen in die Registry.
+1. SMAPI loads the Core and its content packs.
+2. The Core reads `interiors.json` with `FormatVersion: 1`.
+3. The schema, global IDs, targets, and all resolved paths are validated.
+4. The Core calculates the gameplay hash for every valid variant.
+5. Only fully valid variants enter the registry.
 
-### Laden eines Saves
+### Loading a save
 
-Der gespeicherte Auswahlzustand wird gegen die lokale Registry und den gespeicherten Gameplay-Hash geprüft. Stardew persistiert den `GameLocation.mapPath` nicht; deshalb darf ausschließlich der unmittelbare `SaveLoaded`-Pfad eine exakt passende gespeicherte Custom-Auswahl mitsamt ihrem vorhandenen Inhalt wiederherstellen. Eine fehlende, geänderte oder nicht ladbare Variante löst keine stillschweigende Änderung der Auswahl aus, setzt auf dem Host aber eine persistente `RequiresEmptyRestore`-Quarantäne. Kehrt das Pack später zurück, gilt wieder der vollständige Leerraum-Check. Runtime-Drift außerhalb von `SaveLoaded` wird ebenso behandelt.
+The stored selection state is checked against the local registry and stored gameplay hash. Stardew does not persist `GameLocation.mapPath`, so only the immediate `SaveLoaded` path may restore an exactly matching stored custom selection together with its existing contents. A missing, changed, or unloadable variant never silently changes the selection, but it sets a persistent `RequiresEmptyRestore` quarantine on the Host. If the pack returns later, the full empty-interior check applies again. Runtime drift outside `SaveLoaded` is handled the same way.
 
-Farmhands lösen denselben Core-eigenen Proxy bis zum erfolgreichen Host-Handshake als geprüfte Vanilla-Map auf. Bei dauerhaft fehlender Parität bleibt der Fallback aktiv und der Core blockiert den Zutritt zum betroffenen Custom-Interior. Lokale Split-Screen-Spieler laufen dagegen auf dem Host-Rechner und teilen dessen autorisierte Registry und Map-Auflösung.
+Farmhands resolve the same Core-owned proxy to a validated Vanilla map until the Host handshake succeeds. When parity remains missing, the fallback stays active and the Core blocks entry to the affected custom interior. Local split-screen players instead run on the Host machine and share its authorized registry and map resolution.
 
-### Angeforderter Wechsel
+### Requested change
 
-1. Ein lokaler Befehl beziehungsweise eine spätere UI oder ein Farmhand stellt eine Wechselanfrage.
-2. Der Host löst Zielgebäude und Zielvariante aus seiner Registry auf.
-3. Der Host prüft Multiplayer-Parität und alle Sicherheitsbedingungen.
-4. Nur nach erfolgreicher Validierung wird die Map gewechselt und die Auswahl gespeichert.
-5. Bei einem Fehler bleibt der bisherige Zustand unverändert und der Grund wird verständlich protokolliert beziehungsweise angezeigt.
+1. A local command, future UI, or Farmhand sends a change request.
+2. The Host resolves the target building and target variant from its registry.
+3. The Host validates multiplayer parity and every safety condition.
+4. Only after successful validation is the map changed and the selection stored.
+5. On failure, the existing state remains unchanged and the reason is logged or displayed clearly.
 
-## Multiplayer-Protokoll
+## Multiplayer protocol
 
-Jeder Peer benötigt den Core. Beim Verbindungsaufbau werden mindestens Protokollversion und Variantentupel abgeglichen:
+Every peer requires the Core. During connection setup, at least the protocol version and variant tuple are compared:
 
 ```text
 (GlobalVariantId, Target, GameplayHash)
 ```
 
-Eine benutzerdefinierte Variante ist nur nutzbar, wenn jeder verbundene Peer dieselbe globale ID und exakt denselben Gameplay-Hash meldet. Ein fehlender Core, eine unbekannte ID oder ein abweichender Hash schließt diese Variante vom Wechsel aus. Der Host bleibt für Entscheidung und Persistenz zuständig.
+A custom variant is usable only when every connected peer reports the same global ID and exact gameplay hash. A missing Core, unknown ID, or mismatched hash excludes the variant from changes. The Host remains responsible for the decision and persistence.
 
-Die Hash-Grenze ist enger als eine bloße Versionsnummer: Zwei Packs mit derselben Manifest-Version, aber unterschiedlichen Maps oder Tilesheets sind nicht kompatibel. Umgekehrt verändern lokalisierte Anzeigenamen und Vorschaubilder außerhalb von `GameplayRoot` den Gameplay-Hash nicht.
+The hash boundary is stricter than a version number alone: two packs with the same manifest version but different maps or tilesheets are incompatible. Conversely, localized display names and preview images outside `GameplayRoot` do not change the gameplay hash.
 
-Der Save enthält für Custom-Maps ausschließlich Core-eigene Managed-Map-Keys, keine direkt synchronisierten Content-Pack-Asset-Keys. Ein Peer mit Core kann deshalb vor der Paritätsentscheidung sicher auf die zielgerechte Vanilla-Map zurückfallen. Ein Peer ohne Core besitzt diesen Loader nicht und wird für einen Save mit aktiven Custom-Interiors nicht unterstützt.
+For custom maps, the save contains only Core-owned managed-map keys, never directly synchronized content-pack asset keys. A peer with the Core can therefore fall back safely to the target-appropriate Vanilla map before the parity decision. A peer without the Core lacks this loader and is unsupported for a save with active custom interiors.
 
-Die Quarantänemarkierung kann nur gesetzt werden, solange der Core selbst geladen ist. Einen ohne Core weitergespielten und gespeicherten Save kann er später nicht beweisbar von einem normalen exakten Restore unterscheiden; dieser Fall bleibt deshalb außerhalb des automatischen Sicherheitsvertrags und verlangt vor Reaktivierung einen leeren Raum oder eine explizite Übernahme von Vanilla.
+The quarantine marker can be set only while the Core itself is loaded. The Core cannot later distinguish a save that was continued and stored without it from a normal exact restore. That case therefore remains outside the automatic safety contract and requires an empty interior or explicit adoption of Vanilla before reactivation.
 
-### Verifikationsstatus
+### Verification status
 
-Die positive Protokollstrecke wurde mit Host und echtem zweitem Farmhand verifiziert: New-Farmhand-Beitritt, Registry-Handshake, Farmhand-Request, host-autorisierter Apply und Reconcile auf denselben Vanilla- beziehungsweise gebäudeinstanz-spezifischen Proxy-Key. Missing-Pack-, Hash-Mismatch- und Peer-ohne-Core-Fälle sind statisch und durch Core-Tests geprüft, aber noch nicht als negative Zwei-Prozess-Strecke live abgenommen.
+The positive protocol path was verified with a Host and a real second Farmhand: New Farmhand join, registry handshake, Farmhand request, Host-authorized apply, and reconciliation to the same Vanilla or building-instance-specific proxy key. Missing-pack, hash-mismatch, and peer-without-Core cases are covered statically and by Core tests but have not yet been validated live as negative two-process paths.
 
-Künftige Live-Abnahmen laufen ausschließlich über das öffentliche SDVKit. `single` ist der Standard-Smoke und -Review; `network-2` wird nur für ausdrücklich verlangte Multiplayer-Abnahmen verwendet. Dessen Review-Lifecycle besteht aus Start und Rollenprüfung, Stop, Neustart mit exakt derselben Auswahl, erneutem Stop und abschließendem SDVKit-Reset. Das Projekt besitzt keine eigene Save-, Staging-, Screenshot- oder Prozesssteuerung.
+Future live validation runs exclusively through the public SDVKit. `single` is the default smoke-test and review topology; use `network-2` only for explicitly requested multiplayer validation. Its review lifecycle consists of start and role validation, stop, restart with exactly the same selection, another stop, and a final SDVKit reset. The project has no custom save, staging, screenshot, or process control.
 
-## Fail-closed-Sicherheitsinvarianten
+## Fail-closed safety invariants
 
-- Kein expliziter Wechsel, auch nicht zu Vanilla, ohne erfolgreiche Zielvalidierung.
-- Keine Löschung und keine automatische Verschiebung persistenter Entitäten.
-- Keine Aktivierung einer Variante mit fehlendem oder abweichendem Peer-Hash.
-- Keine stillschweigende Änderung der gespeicherten Auswahl bei fehlendem Pack.
-- Kein Laden von `Map` außerhalb des deklarierten `GameplayRoot`.
-- Keine pack- oder mod-lokale TMX-, TSX- oder Tilesheet-Abhängigkeit außerhalb von `GameplayRoot`.
-- Kein Auflösen von `GameplayRoot` oder `Preview` außerhalb des Pack-Roots.
-- Absolute Pfade, Traversal (`..`) und Dateisystem-Ausbrüche werden abgelehnt.
-- Symlinks und Junctions im Pack-Dateibaum werden fail-closed abgelehnt.
-- Eine fehlerhafte Variante wird isoliert deaktiviert und mit Pack-ID, Varianten-ID und Ursache geloggt.
-- Unsichere oder nicht beweisbare Zustände führen zur Ablehnung, nicht zu einer bestmöglichen Migration.
+- No explicit change, including a change to Vanilla, without successful target validation.
+- No deletion or automatic relocation of persistent entities.
+- No activation of a variant with a missing or mismatched peer hash.
+- No silent change to the stored selection when a pack is missing.
+- No loading of `Map` outside the declared `GameplayRoot`.
+- No pack-local or mod-local TMX, TSX, or tilesheet dependency outside `GameplayRoot`.
+- No resolution of `GameplayRoot` or `Preview` outside the pack root.
+- Absolute paths, traversal (`..`), and filesystem escapes are rejected.
+- Symlinks and junctions in the pack tree are rejected fail-closed.
+- An invalid variant is disabled in isolation and logged with its pack ID, variant ID, and cause.
+- Unsafe or unprovable states result in rejection, not a best-effort migration.
 
-Zur Wechselvalidierung gehören mindestens Zieltyp und Upgrade-Stufe, Map-Ladbarkeit, benötigte Layer/Eigenschaften, gültige Anker sowie die Frage, ob bestehende Spieler und persistente Entitäten auf der Ziel-Map gültig bleiben. Konkrete Migrationsregeln gehören nicht in den MVP.
+Change validation includes at least the target type and upgrade level, map loadability, required layers/properties, valid anchors, and whether existing players and persistent entities remain valid on the target map. Concrete migration rules are outside the MVP.
 
-## Content-Patcher-Grenze
+## Content Patcher boundary
 
-Content Patcher kombiniert `Load`- und `EditMap`-Patches abhängig von Priorität, Lade-Reihenfolge, Tokens und Bedingungen. Der resultierende Assetzustand besitzt nicht automatisch die Metadaten eines auswählbaren Interior-Packs. Der Core importiert daher keine beliebigen Replacer und liest keine fremden Pack-Verzeichnisse als implizite Varianten.
+Content Patcher combines `Load` and `EditMap` patches based on priority, load order, tokens, and conditions. The resulting asset state does not automatically carry the metadata of a selectable interior pack. The Core therefore does not import arbitrary replacers or read third-party pack directories as implicit variants.
 
-Eine spätere, ausdrücklich versionierte Registry-Asset-Integration für Content Patcher ist möglich, aber nicht Voraussetzung des nativen MVP-Packformats.
+A future, explicitly versioned registry-asset integration for Content Patcher is possible but is not a prerequisite for the native MVP pack format.
 
-## Bewusst offen
+## Deliberately open
 
-- Konkrete Ingame-Menüführung und Farmhand-Anfrage-UX.
-- Negative Zwei-Prozess-Abnahme für Missing-Pack, Hash-Mismatch, Peer ohne Core und verzögerten Handshake.
-- Remote-Spieler-Occupancy-Gate in einer echten Host/Farmhand-Sitzung.
-- Autorisierte Migrationsbeschreibungen zwischen deutlich verschiedenen Layouts.
-- Weitere Targets nach realer Verifikation von Gewächshaus und Deluxe-Scheune.
-- Farmhaus, Farmhöhle, Coop, Shed und Slime Hutch.
+- Concrete in-game menu flow and Farmhand request UX.
+- Negative two-process validation for a missing pack, hash mismatch, a peer without the Core, and a delayed handshake.
+- Remote-player occupancy gate in a real Host/Farmhand session.
+- Authorized migration descriptions between substantially different layouts.
+- Additional targets after real verification of the Greenhouse and Deluxe Barn.
+- Farmhouse, Farm Cave, Coop, Shed, and Slime Hutch.

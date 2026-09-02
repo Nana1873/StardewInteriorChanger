@@ -1,12 +1,12 @@
-# Interior-Packs erstellen
+# Creating interior packs
 
-Interior-Packs sind native SMAPI-Content-Packs für `StardewInteriorChanger.Core`. Sie registrieren vollständige, auswählbare Varianten mit eindeutiger Zielart und klarer Dateigrenze. Sie sind **keine** automatischen Adapter für bestehende Content-Patcher-Replacer.
+Interior packs are native SMAPI content packs for `StardewInteriorChanger.Core`. They register complete, selectable variants with an explicit target type and clear file boundary. They are **not** automatic adapters for existing Content Patcher replacers.
 
-> Das Verzeichnis `examples/ExampleInteriorPack` ist nur ein Schema-Beispiel. Die referenzierte Map fehlt absichtlich. Nicht in `Mods` kopieren und nicht als Release-Pack veröffentlichen.
+> The `examples/ExampleInteriorPack` directory is a schema example only. The referenced map is intentionally missing. Do not copy it into `Mods` or publish it as a release pack.
 
-## Ordnerstruktur
+## Directory structure
 
-Ein echtes Pack kann beispielsweise so aufgebaut sein:
+A real pack can use a structure like this:
 
 ```text
 [IC] My Greenhouse/
@@ -23,11 +23,11 @@ Ein echtes Pack kann beispielsweise so aufgebaut sein:
          └─ custom-tilesheet.png
 ```
 
-Alle Dateien, die das tatsächliche Gameplay oder die Map verändern, gehören unter den jeweiligen `GameplayRoot`. Ein Preview gehört bewusst außerhalb davon.
+Every file that changes actual gameplay or the map belongs under the corresponding `GameplayRoot`. Previews should intentionally remain outside it.
 
 ## `manifest.json`
 
-Das Manifest folgt dem normalen SMAPI-Format. Entscheidend ist `ContentPackFor`:
+The manifest follows the normal SMAPI format. `ContentPackFor` is the key field:
 
 ```json
 {
@@ -44,11 +44,11 @@ Das Manifest folgt dem normalen SMAPI-Format. Entscheidend ist `ContentPackFor`:
 }
 ```
 
-Die `UniqueID` des Packs wird Teil jeder globalen Varianten-ID und darf nach Veröffentlichung nicht geändert werden.
+The pack's `UniqueID` becomes part of every global variant ID and must not change after publication.
 
 ## `interiors.json`
 
-Schema-Version 1:
+Schema version 1:
 
 ```json
 {
@@ -66,55 +66,55 @@ Schema-Version 1:
 }
 ```
 
-### Felder
+### Fields
 
-| Feld | Pflicht | Vertrag |
+| Field | Required | Contract |
 | --- | --- | --- |
-| `FormatVersion` | ja | Ganzzahl; im MVP exakt `1`. |
-| `Interiors` | ja | Array der Variantendefinitionen. |
-| `Id` | ja | Stabile lowercase-ASCII-ID nach `[a-z0-9][a-z0-9._-]{0,63}`; `vanilla` ist reserviert. Globale ID: `<PackUniqueID>/<Id>`. Eine veröffentlichte ID nie für ein anderes Layout wiederverwenden. |
-| `DisplayName` | ja | Sichtbarer Name. Rein kosmetisch und nicht Teil des Gameplay-Hashes. |
-| `Target` | ja | Im MVP exakt `Greenhouse` oder `DeluxeBarn`. |
-| `GameplayRoot` | ja | Relativer Ordner unter dem Pack-Root. Sämtliche Dateien darin fließen in den Gameplay-Hash ein. |
-| `Map` | ja | Pfad relativ zu `GameplayRoot`. Die Datei muss innerhalb dieses Ordners auflösbar und als unterstützte Map ladbar sein. |
-| `Preview` | nein | Pfad relativ zum Pack-Root. Außerhalb von `GameplayRoot` rein kosmetisch und nicht Teil des Gameplay-Hashes; liegt die Datei innerhalb von `GameplayRoot`, wird sie wie jede Gameplay-Datei mitgehasht. |
-| `Anchors` | nein | Für zukünftige, dokumentierte semantische Anker reserviert. Bis ein Zielvertrag konkrete Namen veröffentlicht, sollte das Feld weggelassen werden. |
+| `FormatVersion` | yes | Integer; exactly `1` in the MVP. |
+| `Interiors` | yes | Array of variant definitions. |
+| `Id` | yes | Stable lowercase ASCII ID matching `[a-z0-9][a-z0-9._-]{0,63}`; `vanilla` is reserved. Global ID: `<PackUniqueID>/<Id>`. Never reuse a published ID for a different layout. |
+| `DisplayName` | yes | Visible name. Purely cosmetic and excluded from the gameplay hash. |
+| `Target` | yes | Exactly `Greenhouse` or `DeluxeBarn` in the MVP. |
+| `GameplayRoot` | yes | Directory relative to the pack root. Every file under it contributes to the gameplay hash. |
+| `Map` | yes | Path relative to `GameplayRoot`. The file must resolve within that directory and load as a supported map. |
+| `Preview` | no | Path relative to the pack root. Purely cosmetic and excluded from the gameplay hash when outside `GameplayRoot`; if the file is inside `GameplayRoot`, it is hashed like every gameplay file. |
+| `Anchors` | no | Reserved for future documented semantic anchors. Omit the field until a target contract publishes concrete names. |
 
-Absolute Pfade, `..`-Segmente oder andere Ausbrüche aus Pack- beziehungsweise Gameplay-Root sind ungültig.
+Absolute paths, `..` segments, or other escapes from the pack root or gameplay root are invalid.
 
-## Hash- und Multiplayer-Grenze
+## Hash and multiplayer boundary
 
-Der Core berechnet den Gameplay-Hash; Autoren tragen ihn nicht in JSON ein. Der SHA-256-Hash umfasst die kanonische gameplay-relevante Definition und ausnahmslos alle Dateien unter `GameplayRoot`. Dazu zählen insbesondere Map, externe TSX-Dateien und eigene Tilesheets. Das interne Byte-Framing ist Teil des versionierten Core-Protokolls und kein Pack-Feld.
+The Core calculates the gameplay hash; authors do not provide it in JSON. The SHA-256 hash covers the canonical gameplay-relevant definition and every file under `GameplayRoot` without exception. This includes the map, external TSX files, and custom tilesheets. The internal byte framing is part of the versioned Core protocol, not a pack field.
 
-Für eine Custom-Variante müssen alle Peers dieselbe globale Varianten-ID und exakt denselben Gameplay-Hash besitzen. Eine gleiche Manifest-Version allein genügt nicht. `DisplayName` und ein Preview außerhalb von `GameplayRoot` dürfen lokalisiert oder kosmetisch verschieden sein, weil sie nicht in den Hash eingehen.
+For a custom variant, every peer must have the same global variant ID and exact gameplay hash. A matching manifest version alone is insufficient. `DisplayName` and a preview outside `GameplayRoot` may be localized or cosmetically different because they are excluded from the hash.
 
-## Map- und Save-Sicherheit
+## Map and save safety
 
-Ein Pack darf nicht voraussetzen, dass der Core gespeicherte Inhalte löscht oder automatisch umsortiert. Vor dem Wechsel prüft der Core, ob die Variante zum Ziel passt und ob vorhandene Zustände sicher bleiben. Wenn dies nicht bewiesen werden kann, wird der Wechsel abgelehnt.
+A pack must not assume that the Core deletes or automatically rearranges stored content. Before a change, the Core validates that the variant matches the target and that existing state remains safe. If safety cannot be proven, the change is rejected.
 
-Pack-Autoren sollten deshalb:
+Pack authors should therefore:
 
-- Ein- und Ausgang, begehbare Bereiche und benötigte Map-Eigenschaften eindeutig gestalten;
-- bestehende Objekt-, Tier-, Möbel- und Pflanzenpositionen berücksichtigen;
-- keine neue Bedeutung unter einer bereits veröffentlichten `Id` ausliefern;
-- stark abweichende Layouts nicht als automatisch migrationssicher bewerben;
-- Multiplayer immer mit Host und mindestens einem Farmhand testen.
+- define the entrance, exit, walkable areas, and required map properties unambiguously;
+- account for existing object, animal, furniture, and crop positions;
+- never ship a new meaning under an already published `Id`;
+- never advertise substantially different layouts as automatically migration-safe;
+- always test multiplayer with a Host and at least one Farmhand.
 
-Der aktuelle Runtime-Vertrag verlangt für beide Targets gleich große, positive `Back`-, `Buildings`- und `Front`-Layer sowie vollständige Fünfergruppen in der map-level `Warp`-Property. Der erste Warp muss mit nichtnegativen Zielkoordinaten zur `Farm` führen; sein Einstieg liegt ein Tile nördlich der Quelle und muss innerhalb der Map nach Stardews Tile-Regeln begehbar sein. Dabei blockiert `Passable` auf `Back`, während ein vorhandenes `Buildings`-Tile nur mit `Passable` oder `Shadow` begehbar ist. Persistierende One-way-Properties wie `Outdoors`, `IsFarm`, `IsGreenhouse`, `TreatAsOutdoors`, `forceLoadPathLayerLights`, `indoorWater`, `LocationContext` und `SeasonOverride` sind nicht zulässig. Für `DeluxeBarn` kommen die gegen Stardew 1.6.15 verifizierten Vanilla-Verträge hinzu: ein nichtleeres map-level `AutoFeed`, ein vollständig innerhalb der Map liegendes `ProduceArea` mit mindestens zwölf nach denselben Regeln begehbaren Tiles und mindestens zwölf Tiles mit der `Back`-Layer-Property `Trough`.
+The current runtime contract requires `Back`, `Buildings`, and `Front` layers with identical positive dimensions for both targets, plus complete groups of five values in the map-level `Warp` property. The first warp must lead to `Farm` with non-negative destination coordinates; its entry point is one tile north of the source and must be walkable within the map under Stardew's tile rules. `Passable` on `Back` blocks movement, while a present `Buildings` tile is walkable only with `Passable` or `Shadow`. Persistent one-way properties such as `Outdoors`, `IsFarm`, `IsGreenhouse`, `TreatAsOutdoors`, `forceLoadPathLayerLights`, `indoorWater`, `LocationContext`, and `SeasonOverride` are not allowed. `DeluxeBarn` also requires the Vanilla contracts verified against Stardew 1.6.15: a non-empty map-level `AutoFeed`, a `ProduceArea` fully inside the map with at least twelve tiles walkable under the same rules, and at least twelve tiles with the `Trough` property on the `Back` layer.
 
-Alle pack- oder mod-lokalen TMX-/TSX-/Tilesheet-Abhängigkeiten müssen innerhalb des Varianten-`GameplayRoot` auflösbar sein. Vanilla-Tilesheets dürfen weiterhin über ihre Spiel-Asset-Namen referenziert werden. Symlinks und Junctions sind im Pack-Dateibaum nicht zulässig.
+Every pack-local or mod-local TMX, TSX, or tilesheet dependency must resolve within the variant's `GameplayRoot`. Vanilla tilesheets may continue to be referenced by their game asset names. Symlinks and junctions are not allowed in the pack tree.
 
-## Fremdassets und Adapter
+## Third-party assets and adapters
 
-Veröffentliche nur Dateien, die du selbst erstellt hast oder für deren Nutzung, Bearbeitung und Weitergabe du eine passende Erlaubnis besitzt. Namensnennung allein ersetzt keine Erlaubnis. Bewahre schriftliche Zustimmungen auf und dokumentiere Credits sowie Abhängigkeiten.
+Publish only files you created yourself or for which you have appropriate permission to use, modify, and redistribute. Attribution alone does not replace permission. Retain written consent and document credits and dependencies.
 
-Ein Adapter für eine andere Mod soll deren Dateien nicht kopieren. Er wird nur mit Zustimmung des ursprünglichen Autors veröffentlicht, verweist auf die separat installierte Original-Mod und enthält ausschließlich notwendige Metadaten beziehungsweise Integrationslogik. Details zu den aktuellen Plattformregeln stehen in den [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
+An adapter for another mod should not copy its files. Publish it only with the original author's consent, reference the separately installed original mod, and include only required metadata or integration logic. See the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines) for details on the current platform rules.
 
-## Existing Content Patcher packs / English note
+## Existing Content Patcher packs
 
 An Interior Changer pack is an explicit variant registry, not a generic Content Patcher map replacement. Content Patcher patches are conditional, ordered asset operations; the resolved map does not retain enough reliable metadata to recover independent selectable variants. Existing mods therefore need an opt-in native pack or a permissioned adapter.
 
-### Compact schema reference (English)
+### Compact schema reference
 
 - `FormatVersion`: required integer, currently `1`.
 - `Interiors`: required array.
@@ -127,7 +127,7 @@ An Interior Changer pack is an explicit variant registry, not a generic Content 
 - `Anchors`: reserved for future documented target contracts; omit it until a concrete anchor name is published.
 - Every multiplayer peer needs the Core and the exact same global variant ID/gameplay hash.
 
-## Offizielle Referenzen
+## Official references
 
 - [SMAPI: Content Packs](https://stardewvalleywiki.com/Modding:Modder_Guide/APIs/Content_Packs)
 - [SMAPI: Manifest](https://stardewvalleywiki.com/Modding:Modder_Guide/APIs/Manifest)

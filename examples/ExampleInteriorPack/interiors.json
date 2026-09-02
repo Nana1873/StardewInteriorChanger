@@ -3,7 +3,7 @@
   "Interiors": [
     {
       "Id": "schema-only-greenhouse",
-      "DisplayName": "Schema-Beispiel: Gewächshaus",
+      "DisplayName": "Schema Example: Greenhouse",
       "Target": "Greenhouse",
       "GameplayRoot": "assets/gameplay/schema-only-greenhouse",
       "Map": "INTENTIONALLY_MISSING-example-greenhouse.tmx"
