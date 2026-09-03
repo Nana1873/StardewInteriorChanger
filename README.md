@@ -2,13 +2,13 @@
 
 Stardew Interior Changer is a SMAPI framework that lets players select registered interior variants for supported farm buildings. The building and its saved game state remain intact; only the registered interior map is replaced.
 
-> **Project status:** functional MVP prototype; no mod release has been published yet. The Release build, 38 Core tests, real Greenhouse/Deluxe Barn changes, save/process restore, and the positive Host/Farmhand path are verified. Live smoke tests, fixtures, and reviews run canonically through the public SDVKit version pinned below. Negative multiplayer parity cases such as a missing pack or mismatched gameplay hash have not yet been validated live with two processes. The pack under `examples/` remains a non-installable schema example only.
+> **Project status:** functional MVP prototype; no mod release has been published yet. The Release build, 45 Core tests, real Greenhouse/Deluxe Barn changes, save/process restore, and the positive Host/Farmhand path are verified. Live smoke tests, fixtures, and reviews run canonically through the public SDVKit version pinned below. Negative multiplayer parity cases such as a missing pack or mismatched gameplay hash have not yet been validated live with two processes. The pack under `examples/` remains a non-installable schema example only.
 
 ## MVP scope
 
 - `Greenhouse` as the farm's single greenhouse interior.
 - `DeluxeBarn` as a separately selectable interior for each building instance.
-- Vanilla as an explicit, safe selection.
+- Base interior as an explicit, safe selection through the building's normal game asset path.
 - Native interior packs with a small, versioned schema.
 - Host-authorized selection stored in the shared save.
 - Safety validation before every change, with no silent deletions or relocation.
@@ -50,7 +50,7 @@ The technical structure and deliberately open runtime decisions are documented i
 
 ## Development and validation with SDVKit
 
-The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.5.3](https://github.com/Nana1873/SDVKit/releases/tag/v0.5.3) with the expected ZIP SHA-256 `54cb3d93bc46599fba339962a2a4f20f27c3ea2f92a0a29e60c57e712cb3cd1a`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
+The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.6.0](https://github.com/Nana1873/SDVKit/releases/tag/v0.6.0) with the expected ZIP SHA-256 `1ec97583767eb682d81fb04935d7c38dcd7a1f5c4f3ed1216474c51997c32844`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
 
 The canonical relative targets are:
 
@@ -73,6 +73,14 @@ sdvkit project smoke .\src\StardewInteriorChanger --topology single --json
 
 SDVKit keeps builds, packages, profiles, saves, staging, logs, screenshots, and process state under `.sdvkit/`. Normal saves, normal or mod-manager-owned mods, and Vortex staging remain outside the workflow.
 
+## In-game selection menu
+
+Press `F8` while a save is loaded and the player is free to open the native Interior Changer menu. The binding is stored as SMAPI's `KeybindList` in `config.json` under `OpenMenu`, so single keys and key combinations can be configured without an additional mod. The deterministic console and SDVKit entry point is `sic menu [buildingId]`; the optional ID selects that supported building directly.
+
+The menu lists the Greenhouse and every Deluxe Barn as separate targets. Choosing a row only changes the previewed choice. The map-change request is sent only after selecting **Apply**, and an accepted request changes the interior immediately. Sleeping saves the selection that has already been applied; there is no deferred sleep queue.
+
+`Base interior` uses Stardew's normal asset path for that building. It can therefore include compatible Content Patcher replacements active for that asset and should not be interpreted as an unmodified Vanilla file. Missing or changed saved variants remain visible as warnings instead of being presented as Base interior. Optional content-pack previews are cosmetic: Base interior, variants without a preview, and preview load failures use a placeholder, while the actual variant remains available.
+
 ## Current developer commands
 
 After loading a save, the following commands are available in the SMAPI console:
@@ -83,6 +91,7 @@ sic list
 sic current [buildingId]
 sic set <variantId> [buildingId]
 sic vanilla [buildingId]
+sic menu [buildingId]
 ```
 
 `sic targets` displays the stable building IDs. `sic current` inspects the supported interior the player is currently inside; pass a building ID to inspect that target from anywhere. A real map change runs only when the interior is empty: it must contain no player, animal, placed object, furniture, crop, or other persistent content. Stardew's built-in Feed Hopper `(BC)99` in animal houses counts as building equipment rather than a player-placed object and remains in place during a map change. The MVP therefore never deletes or moves save content. Stored custom maps are restored automatically during a normal save load only when the ID and stored gameplay hash exactly match the installed pack. If the Core previously encountered a missing, changed, or unloadable pack, it sets a persistent quarantine marker; a later restore then also requires an empty interior. Explicitly adopting the already loaded Vanilla map does not change the map and can safely clear this marker with `sic vanilla`.
@@ -104,7 +113,7 @@ sdvkit project review start .\src\StardewInteriorChanger `
 sdvkit project review status --topology single --json
 ```
 
-Generic world state is prepared exclusively through the bounded `sdvkit fixture ...` console commands. Validate the mod itself through `sic targets`, `sic list`, `sic current`, `sic set`, and `sic vanilla`. Create screenshots only through `sdvkit screenshot <label>`; accept them only after explicit AlwaysOn confirmation, a present PNG, and real visual inspection. `commandWritten=true` proves only that a console command was delivered.
+Generic world state is prepared exclusively through the bounded `sdvkit fixture ...` console commands. Validate the mod itself through `sic targets`, `sic list`, `sic current`, `sic set`, `sic vanilla`, and `sic menu`. Create screenshots only through SDVKit's published screenshot surface; map captures use `sdvkit screenshot <label>`, while a published SDVKit version that supports viewport capture can record menus and HUD. Accept a screenshot only after explicit AlwaysOn confirmation, a present PNG, and real visual inspection. `commandWritten=true` proves only that a console command was delivered.
 
 A review using the test save includes a real process restart with the same work copy. After the final save and stop, reset exclusively through SDVKit:
 

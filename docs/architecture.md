@@ -37,6 +37,12 @@ Pack authors do not provide a hash. `DisplayName` and a `Preview` outside `Gamep
 
 The Host owns the authoritative mapping from each building instance to a global variant ID. The Greenhouse has one unique target instance; every Deluxe Barn requires a stable building identity. Farmhands may send requests but cannot directly modify the registry or saved selection.
 
+### Native selection menu
+
+The optional player interface is a native Stardew `IClickableMenu`; it adds no UI framework or required configuration-mod dependency. Its viewport-derived layout contains independent scrollable building and variant lists plus an optional preview. Mouse, keyboard, and controller snapping all select only local menu state. The shared selection path is entered only by the explicit Apply action.
+
+Base interior is always the first choice and resolves the building's normal game asset path, so compatible Content Patcher changes may be part of the resolved result. A saved custom choice is current only when its global variant ID and gameplay hash both match an installed entry. Invalid data, a missing entry, or a changed hash remains a visible warning and is never represented as Base interior.
+
 ## Flow
 
 ### Startup and pack discovery
@@ -55,11 +61,13 @@ Farmhands resolve the same Core-owned proxy to a validated Vanilla map until the
 
 ### Requested change
 
-1. A local command, future UI, or Farmhand sends a change request.
+1. A local command, the in-game menu's explicit Apply action, or a Farmhand sends a change request.
 2. The Host resolves the target building and target variant from its registry.
 3. The Host validates multiplayer parity and every safety condition.
 4. Only after successful validation is the map changed and the selection stored.
 5. On failure, the existing state remains unchanged and the reason is logged or displayed clearly.
+
+An accepted request changes the map immediately. Sleeping only persists the already committed shared selection; the Core does not maintain a deferred sleep queue. Farmhand menu requests use the existing selection request/result messages and block a second Apply while a response is pending. Results are correlated by the existing building and variant fields; a result received after the menu closes is logged and shown through Stardew's HUD.
 
 ## Multiplayer protocol
 
@@ -107,7 +115,6 @@ A future, explicitly versioned registry-asset integration for Content Patcher is
 
 ## Deliberately open
 
-- Concrete in-game menu flow and Farmhand request UX.
 - Negative two-process validation for a missing pack, hash mismatch, a peer without the Core, and a delayed handshake.
 - Remote-player occupancy gate in a real Host/Farmhand session.
 - Authorized migration descriptions between substantially different layouts.

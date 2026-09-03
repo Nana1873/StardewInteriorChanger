@@ -21,6 +21,13 @@ internal sealed class PendingClientReconcile
     public int AttemptsRemaining { get; set; } = 600;
 }
 
+internal sealed record SelectionSubmission(bool IsPending, bool Success, string Message)
+{
+    public static SelectionSubmission Pending(string message) => new(true, false, message);
+
+    public static SelectionSubmission Rejected(string message) => new(false, false, message);
+}
+
 public sealed class ModEntry : Mod
 {
     internal const ushort MultiplayerProtocolMajor = 1;
@@ -33,11 +40,15 @@ public sealed class ModEntry : Mod
         new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> reportedSelectionIssues = new(StringComparer.Ordinal);
     private readonly Dictionary<InteriorTarget, MapSnapshot> vanillaFallbackMaps = new();
+    private readonly InteriorMenuRequestTracker menuRequestTracker = new();
     private long? remoteHostPlayerId;
     private IInteriorCatalog catalog = null!;
+    private ModConfig config = null!;
+    private WeakReference<InteriorSelectionMenu>? pendingMenu;
 
     public override void Entry(IModHelper helper)
     {
+        config = helper.ReadConfig<ModConfig>();
         catalog = new ContentPackInteriorCatalog(helper, Monitor, ModManifest.UniqueID);
 
         helper.Events.Content.AssetRequested += OnAssetRequested;
@@ -51,11 +62,13 @@ public sealed class ModEntry : Mod
         helper.Events.Multiplayer.PeerConnected += OnPeerConnected;
         helper.Events.Multiplayer.PeerDisconnected += OnPeerDisconnected;
         helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
+        helper.Events.Input.ButtonsChanged += OnButtonsChanged;
 
         helper.ConsoleCommands.Add(
             "sic",
             "Interior Changer commands: sic targets | sic list | sic current [buildingId] | " +
-            "sic set <variantId> [buildingId] | sic vanilla [buildingId]",
+            "sic set <variantId> [buildingId] | sic vanilla [buildingId] | " +
+            "sic menu [buildingId]",
             OnConsoleCommand);
     }
 
@@ -240,7 +253,17 @@ public sealed class ModEntry : Mod
         clientReloadedMaps.Clear();
         clientResolvedProxyModes.Clear();
         reportedSelectionIssues.Clear();
+        menuRequestTracker.Reset();
+        pendingMenu = null;
         remoteHostPlayerId = null;
+    }
+
+    private void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
+    {
+        if (config.OpenMenu.JustPressed())
+        {
+            TryOpenMenu(null);
+        }
     }
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -445,8 +468,34 @@ public sealed class ModEntry : Mod
             playerIDs: new[] { playerId });
     }
 
-    private void ReceiveSelectionResult(SelectionResultMessage result) =>
+    private void ReceiveSelectionResult(SelectionResultMessage result)
+    {
         Monitor.Log(result.Message, result.Success ? LogLevel.Info : LogLevel.Error);
+        if (!menuRequestTracker.TryComplete(
+                result.BuildingId,
+                result.VariantId,
+                out _))
+        {
+            return;
+        }
+
+        InteriorSelectionMenu? menu = null;
+        pendingMenu?.TryGetTarget(out menu);
+        pendingMenu = null;
+        if (menu is not null && ReferenceEquals(Game1.activeClickableMenu, menu))
+        {
+            menu.HandleSelectionResult(
+                result.Success,
+                result.BuildingId,
+                result.VariantId,
+                result.Message);
+            return;
+        }
+
+        Game1.addHUDMessage(new HUDMessage(
+            result.Message,
+            result.Success ? HUDMessage.newQuest_type : HUDMessage.error_type));
+    }
 
     private void ReceiveSelectionCommitted(
         long playerId,
@@ -735,10 +784,14 @@ public sealed class ModEntry : Mod
             case "vanilla":
                 RequestSelection(null, args.ElementAtOrDefault(1));
                 break;
+            case "menu":
+                TryOpenMenu(args.ElementAtOrDefault(1));
+                break;
             default:
                 Monitor.Log(
                     "Usage: sic targets | sic list | sic current [buildingId] | " +
-                    "sic set <variantId> [buildingId] | sic vanilla [buildingId]",
+                    "sic set <variantId> [buildingId] | sic vanilla [buildingId] | " +
+                    "sic menu [buildingId]",
                     LogLevel.Info);
                 break;
         }
@@ -811,24 +864,69 @@ public sealed class ModEntry : Mod
             return;
         }
 
+        SelectionSubmission result = SubmitSelection(building, target, variantValue);
+        Monitor.Log(
+            result.Message,
+            result.IsPending || result.Success ? LogLevel.Info : LogLevel.Error);
+    }
+
+    internal void RequestMenuSelection(
+        InteriorSelectionMenu menu,
+        Building building,
+        InteriorTarget target,
+        string? variantValue)
+    {
+        string buildingId = building.id.Value.ToString("D");
+        InteriorMenuRequest? request = null;
+        if (!Context.IsMainPlayer)
+        {
+            if (!menuRequestTracker.TryBegin(buildingId, variantValue, out request))
+            {
+                menu.ShowPendingBlocked();
+                return;
+            }
+
+            pendingMenu = new WeakReference<InteriorSelectionMenu>(menu);
+        }
+
+        SelectionSubmission result = SubmitSelection(building, target, variantValue);
+        Monitor.Log(
+            result.Message,
+            result.IsPending || result.Success ? LogLevel.Info : LogLevel.Error);
+        if (result.IsPending)
+        {
+            menu.ShowPending();
+            return;
+        }
+
+        if (request is not null)
+        {
+            menuRequestTracker.TryCancel(request);
+            pendingMenu = null;
+        }
+
+        menu.HandleSelectionResult(result.Success, buildingId, variantValue, result.Message);
+    }
+
+    private SelectionSubmission SubmitSelection(
+        Building building,
+        InteriorTarget target,
+        string? variantValue)
+    {
         string? canonicalVariant = null;
         if (variantValue is not null)
         {
             if (!catalog.TryGet(variantValue, out RuntimeInterior interior))
             {
-                Monitor.Log(
-                    $"Unknown interior variant '{variantValue}'. Run 'sic list' for valid IDs.",
-                    LogLevel.Error);
-                return;
+                return SelectionSubmission.Rejected(
+                    $"Unknown interior variant '{variantValue}'. Run 'sic list' for valid IDs.");
             }
 
             if (interior.Definition.Target != target)
             {
-                Monitor.Log(
+                return SelectionSubmission.Rejected(
                     $"Variant '{interior.Definition.Id}' targets " +
-                    $"{interior.Definition.Target}, not {target}.",
-                    LogLevel.Error);
-                return;
+                    $"{interior.Definition.Target}, not {target}.");
             }
 
             canonicalVariant = interior.Definition.Id.Value;
@@ -837,8 +935,7 @@ public sealed class ModEntry : Mod
         if (Context.IsMainPlayer)
         {
             bool success = TrySetSelection(building, canonicalVariant, out string result);
-            Monitor.Log(result, success ? LogLevel.Info : LogLevel.Error);
-            return;
+            return new SelectionSubmission(false, success, result);
         }
 
         long hostId = Game1.MasterPlayer.UniqueMultiplayerID;
@@ -847,16 +944,13 @@ public sealed class ModEntry : Mod
             if (!peerRegistries.TryGetValue(hostId, out PeerRegistrySnapshot? host)
                 || host.ProtocolMajor != MultiplayerProtocolMajor)
             {
-                Monitor.Log(
-                    "The host's Interior Changer handshake is missing or incompatible.",
-                    LogLevel.Error);
-                return;
+                return SelectionSubmission.Rejected(
+                    "The host's Interior Changer handshake is missing or incompatible.");
             }
 
             if (!ClientAndHostShareVariant(host, canonicalVariant, out string mismatch))
             {
-                Monitor.Log(mismatch, LogLevel.Error);
-                return;
+                return SelectionSubmission.Rejected(mismatch);
             }
         }
 
@@ -869,8 +963,75 @@ public sealed class ModEntry : Mod
             MultiplayerMessageTypes.SelectionRequest,
             modIDs: new[] { ModManifest.UniqueID },
             playerIDs: new[] { hostId });
-        Monitor.Log("Interior change request sent to the host.", LogLevel.Info);
+        return SelectionSubmission.Pending("Interior change request sent to the host.");
     }
+
+    private void TryOpenMenu(string? buildingToken)
+    {
+        if (!Context.IsWorldReady)
+        {
+            Monitor.Log(Helper.Translation.Get("menu.open.not-ready"), LogLevel.Error);
+            return;
+        }
+
+        if (!Context.IsPlayerFree
+            || Game1.activeClickableMenu is not null
+            || Game1.currentMinigame is not null
+            || Game1.eventUp
+            || !Game1.player.CanMove)
+        {
+            Monitor.Log(Helper.Translation.Get("menu.open.unsafe"), LogLevel.Error);
+            return;
+        }
+
+        IReadOnlyList<(Building Building, InteriorTarget Target)> buildings =
+            GetSupportedMenuBuildings();
+        if (buildings.Count == 0)
+        {
+            Monitor.Log(Helper.Translation.Get("menu.empty"), LogLevel.Error);
+            return;
+        }
+
+        Guid? selectedId = FindCurrentBuilding()?.id.Value;
+        if (!string.IsNullOrWhiteSpace(buildingToken))
+        {
+            if (!TryResolveCommandBuilding(
+                    buildingToken,
+                    out Building requested,
+                    out _))
+            {
+                return;
+            }
+
+            selectedId = requested.id.Value;
+        }
+
+        var menu = new InteriorSelectionMenu(
+            this,
+            Helper,
+            Monitor,
+            catalog,
+            buildings,
+            selectedId);
+        if (menuRequestTracker.Pending is not null)
+        {
+            pendingMenu = new WeakReference<InteriorSelectionMenu>(menu);
+            menu.ShowPending();
+        }
+
+        Game1.activeClickableMenu = menu;
+    }
+
+    private static IReadOnlyList<(Building Building, InteriorTarget Target)>
+        GetSupportedMenuBuildings() => GetFarmBuildings()
+            .Select(building => (Building: building, Target: Classify(building)))
+            .Where(item => item.Target is not null && item.Building.GetIndoors() is not null)
+            .Select(item => (Building: item.Building, Target: item.Target!.Value))
+            .OrderBy(item => item.Target == InteriorTarget.Greenhouse ? 0 : 1)
+            .ThenBy(item => item.Building.tileY.Value)
+            .ThenBy(item => item.Building.tileX.Value)
+            .ThenBy(item => item.Building.id.Value)
+            .ToArray();
 
     private bool ClientAndHostShareVariant(
         PeerRegistrySnapshot host,
