@@ -50,7 +50,7 @@ The technical structure and deliberately open runtime decisions are documented i
 
 ## Development and validation with SDVKit
 
-The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.5.3](https://github.com/Nana1873/SDVKit/releases/tag/v0.5.3) with the expected ZIP SHA-256 `54cb3d93bc46599fba339962a2a4f20f27c3ea2f92a0a29e60c57e712cb3cd1a`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
+The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.6.0](https://github.com/Nana1873/SDVKit/releases/tag/v0.6.0) with the expected ZIP SHA-256 `1ec97583767eb682d81fb04935d7c38dcd7a1f5c4f3ed1216474c51997c32844`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
 
 The canonical relative targets are:
 
