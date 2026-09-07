@@ -72,8 +72,10 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
     public bool CanApply => !IsPending && !SelectedOption.IsCurrent;
     public Color ApplyTint => CanApply ? new Color(207, 225, 179) : new Color(205, 200, 188);
     public Color StatusColor => rejected ? new Color(151, 50, 35) : new Color(62, 83, 47);
-    public string Status => string.IsNullOrEmpty(feedback) ? T("menu.status.ready") : feedback;
-    public string ApplyLabel => IsPending ? T("menu.apply.pending") : SelectedOption.IsCurrent ? T("menu.apply.current") : T("menu.apply");
+    public string Status => string.IsNullOrEmpty(feedback)
+        ? T(HasSourceConfigurationUpdate ? "menu.status.settings-changed" : "menu.status.ready") : feedback;
+    public string ApplyLabel => IsPending ? T("menu.apply.pending") : SelectedOption.IsCurrent
+        ? T("menu.apply.current") : T(IsUpdatedConfigurationSelection ? "menu.apply.settings" : "menu.apply");
     public IReadOnlyList<string> BuildingLabels { get; }
     public IReadOnlyList<InteriorMenuCard> Cards => cards;
     public string SelectedName => Cards[selectedVariantIndex].Name;
@@ -120,6 +122,26 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
     private InteriorMenuBuilding SelectedBuilding => buildings[selectedBuildingIndex];
     private InteriorMenuOption SelectedOption => view.Options[selectedVariantIndex];
 
+    private RuntimeInterior? CurrentSourceInterior
+    {
+        get
+        {
+            string? currentId = view.Options.FirstOrDefault(option => option.IsCurrent)?.VariantId;
+            return currentId is not null && catalog.TryGet(currentId, out RuntimeInterior current)
+                && current.SourceFamilyId is not null ? current : null;
+        }
+    }
+
+    private bool HasSourceConfigurationUpdate => CurrentSourceInterior is { } current
+        && !current.IsCurrentSourceConfiguration
+        && catalog.Entries.Any(entry => entry.SourceFamilyId == current.SourceFamilyId
+            && entry.IsCurrentSourceConfiguration);
+
+    private bool IsUpdatedConfigurationSelection => HasSourceConfigurationUpdate
+        && SelectedOption.VariantId is { } id && catalog.TryGet(id, out RuntimeInterior selected)
+        && selected.IsCurrentSourceConfiguration
+        && selected.SourceFamilyId == CurrentSourceInterior!.SourceFamilyId;
+
     public InteriorSelectionMenu(ModEntry mod, IModHelper helper, IMonitor monitor, IInteriorCatalog catalog,
         IViewEngine viewEngine, IReadOnlyList<(Building Building, InteriorTarget Target)> supportedBuildings,
         Guid? initiallySelectedBuilding, InteriorMenuRequest? pendingRequest)
@@ -159,6 +181,16 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
         viewportHeight = Game1.uiViewport.Height;
         foreach (string property in new[] { nameof(RootLayout), nameof(BodyLayout), nameof(BodyOrientation), nameof(ListLayout),
             nameof(PreviewMargin), nameof(BuildingLayout), nameof(PreviewImageLayout) }) Notify(property);
+    }
+
+    public void RefreshCatalog()
+    {
+        if (disposed || IsPending) return;
+        string? selectedId = SelectedOption.VariantId;
+        RefreshView();
+        int selected = view.Options.ToList().FindIndex(option => option.VariantId == selectedId);
+        if (selected < 0) selected = view.Options.ToList().FindIndex(option => option.IsCurrent);
+        SelectVariant(Math.Max(0, selected));
     }
 
     public void SelectVariant(int index)
@@ -230,7 +262,10 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
                     InteriorChoice.CustomChoice custom => InteriorMenuStoredChoice.Custom(custom.VariantId, custom.ContentHash),
                     _ => InteriorMenuStoredChoice.Invalid(T("menu.warning.unknown-data"))
                 };
-        view = InteriorMenuStateBuilder.Build(SelectedBuilding.Target, catalog.Entries.Select(entry =>
+        view = InteriorMenuStateBuilder.Build(SelectedBuilding.Target, catalog.Entries
+            .Where(entry => entry.SourceFamilyId is null || entry.IsCurrentSourceConfiguration
+                || entry.Definition.Id == choice.VariantId)
+            .Select(entry =>
             new InteriorMenuVariant(entry.Definition.Id, entry.Definition.DisplayName, entry.Definition.Target,
                 entry.Definition.ContentHash, entry.SourcePackId, entry.SourcePackVersion, entry.PreviewAssetKey)), choice);
         selectedVariantIndex = Math.Clamp(selectedVariantIndex, 0, view.Options.Count - 1);

@@ -108,11 +108,11 @@ Every pack-local or mod-local TMX, TSX, or tilesheet dependency must resolve wit
 
 Publish only files you created yourself or for which you have appropriate permission to use, modify, and redistribute. Attribution alone does not replace permission. Retain written consent and document credits and dependencies.
 
-An adapter for another mod should not copy its files. Publish it only with the original author's consent, reference the separately installed original mod, and include only required metadata or integration logic. See the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines) for details on the current platform rules.
+An installed-source integration should reference the separately installed original mod and include only original integration logic and required metadata. It must not imply author endorsement. Copying or distributing third-party files, including derived previews, requires documented permission for that use. See the README's packaging policy and the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
 
 ## Existing Content Patcher packs
 
-An Interior Changer pack is an explicit variant registry, not a generic Content Patcher map replacement. Content Patcher patches are conditional, ordered asset operations; the resolved map does not retain enough reliable metadata to recover independent selectable variants. Existing mods therefore need an opt-in native pack or a permissioned adapter.
+An Interior Changer pack is an explicit variant registry, not a generic Content Patcher map replacement. Content Patcher patches are conditional, ordered asset operations; the resolved map does not retain enough reliable metadata to recover independent selectable variants. Existing mods therefore need an opt-in native pack or a validated installed-source integration. Packs that distribute third-party content also require permission for that content.
 
 ### Compact schema reference
 

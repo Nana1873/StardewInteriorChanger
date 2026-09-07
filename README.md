@@ -17,7 +17,9 @@ Stardew Interior Changer is a SMAPI framework that lets players select registere
 
 Farmhouse conversions, automatic migration of arbitrary layouts, and automatic import of existing Content Patcher or XNB replacers are outside the MVP scope.
 
-The next development priority is independent selection between real supported interior mods, followed by additional farm-building targets and eventually a separate farmhouse contract. See [real-mod compatibility](docs/real-mod-compatibility.md) for the inspected candidates and integration limits, and the [roadmap](ROADMAP.md) for the validation steps.
+The first installed-source adapter supports Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Its configured interior becomes a menu choice without converting or editing the original pack. GMCM changes require explicit application; old selected snapshots remain available during the session. Historical configurations are not persisted by SIC, so changing source settings before a restart can leave the old saved selection quarantined until safely resolved. See [real-mod compatibility](docs/real-mod-compatibility.md) for exact requirements and limits.
+
+The next development priority is selection between two real supported interior mods, followed by additional farm-building targets and eventually a separate farmhouse contract. The [roadmap](ROADMAP.md) tracks the validation steps.
 
 ## Multiplayer contract
 
@@ -165,7 +167,7 @@ Content Patcher packs do not expose a catalog of independent interiors. They pat
 - Conditions, tokens, configuration, dependencies, and load order can change the result.
 - Later patches receive the already combined result of earlier patches.
 
-The Core could therefore see only the currently resolved final state. It cannot reliably reconstruct the original variants, allowed building types, entrances/exits, dependencies, or permissions. Existing interiors require a native pack or a validated, permissioned adapter.
+The Core could therefore see only the currently resolved final state. It cannot reliably reconstruct the original variants, allowed building types, entrances/exits, dependencies, or permissions. Existing interiors require a native pack or a validated installed-source integration. Distributing third-party content also requires permission for that content.
 
 Official details: [Content Patcher `Load`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-load.md), [`EditMap`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-editmap.md), and [how multiple patches interact](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide.md#how-do-multiple-patches-interact).
 
@@ -173,7 +175,9 @@ Official details: [Content Patcher `Load`](https://github.com/Pathoschild/Starde
 
 The Core and official example packs contain only original assets or content whose license explicitly permits the specific use and redistribution. Maps, tilesheets, preview images, or other files from third-party mods are not copied or republished without documented permission. Credit or a link does not replace permission.
 
-A published third-party adapter should:
+Original compatibility code which reads a separately installed mod is distinct from a pack containing third-party content. SIC's installed-source bridge distributes its own integration logic and supported-version metadata, without bundling or editing the original mod. This does not assert the original author's endorsement or grant permission to redistribute their work.
+
+A published pack containing third-party content or derived assets must:
 
 - have the original author's consent;
 - require the original mod as a separate dependency whenever possible;
@@ -181,7 +185,7 @@ A published third-party adapter should:
 - document supported original versions and dependencies;
 - contain no third-party assets unless their license or written permission clearly allows it.
 
-If permission is unclear, no public adapter is shipped. Nexus Mods requires permission for existing user-created content and explicitly states that attribution alone is insufficient. See the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
+If permission for third-party content is unclear, that content is not shipped. This includes derived preview images. Follow the applicable distribution platform's rules; see the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
 
 ## License
 

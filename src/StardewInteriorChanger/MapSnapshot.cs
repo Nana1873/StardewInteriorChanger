@@ -26,4 +26,6 @@ internal sealed class MapSnapshot
         using var stream = new MemoryStream(data, writable: false);
         return FormatManager.Instance.BinaryFormat.Load(stream);
     }
+
+    public byte[] CopyBytes() => (byte[])data.Clone();
 }

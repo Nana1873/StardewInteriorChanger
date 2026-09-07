@@ -48,6 +48,8 @@ public sealed class ModEntry : Mod
     private WeakReference<InteriorSelectionMenu>? pendingMenu;
     private InteriorSelectionMenu? activeMenu;
     private IViewEngine? viewEngine;
+    private bool catalogInitialized;
+    private uint catalogReadyTick;
 
     public override void Entry(IModHelper helper)
     {
@@ -55,6 +57,8 @@ public sealed class ModEntry : Mod
         catalog = new ContentPackInteriorCatalog(helper, Monitor, ModManifest.UniqueID);
 
         helper.Events.Content.AssetRequested += OnAssetRequested;
+        helper.Events.Content.AssetsInvalidated += (_, e) =>
+            catalog.InvalidateInstalledSources(e.NamesWithoutLocale.Select(name => name.Name));
         helper.Events.GameLoop.GameLaunched += OnGameLaunched;
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.DayStarted += OnDayStarted;
@@ -80,9 +84,9 @@ public sealed class ModEntry : Mod
     {
         viewEngine = Helper.ModRegistry.GetApi<IViewEngine>("focustense.StardewUI");
         viewEngine?.RegisterViews("Mods/StardewInteriorChanger.Core/Views", "assets/views");
-        catalog.Reload();
-        LoadVanillaFallbackMaps();
-        PreflightManagedMapAssets();
+        catalog.AttachInstalledSources();
+        // CP registers its content handlers on its first update; resolve after that tick.
+        catalogReadyTick = 2;
     }
 
     private void PreflightManagedMapAssets()
@@ -158,6 +162,7 @@ public sealed class ModEntry : Mod
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
+        RefreshInstalledCatalog();
         IMultiplayerPeer? hostPeer = Helper.Multiplayer.GetConnectedPlayers()
             .FirstOrDefault(peer => peer.IsHost);
         if (hostPeer is not null)
@@ -186,6 +191,11 @@ public sealed class ModEntry : Mod
     private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
     {
         string assetName = e.NameWithoutLocale.Name;
+        if (catalog.TryGetTexture(assetName, out TextureSnapshot texture))
+        {
+            e.LoadFrom(texture.CreateTexture, AssetLoadPriority.Exclusive);
+            return;
+        }
         if (!catalog.TryGetManagedMapTarget(assetName, out InteriorTarget target))
         {
             return;
@@ -276,6 +286,16 @@ public sealed class ModEntry : Mod
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
+        if (!catalogInitialized && catalogReadyTick != 0 && e.Ticks >= catalogReadyTick)
+        {
+            catalogInitialized = true;
+            catalog.Reload();
+            catalog.RefreshInstalledSources();
+            LoadVanillaFallbackMaps();
+            PreflightManagedMapAssets();
+        }
+        else if (catalogInitialized && e.Ticks % 60 == 0)
+            RefreshInstalledCatalog();
         activeMenu?.RefreshLayout();
         if (!Context.IsWorldReady || Context.IsOnHostComputer)
         {
@@ -300,6 +320,15 @@ public sealed class ModEntry : Mod
         {
             ReconcileAllBuildings(allowPopulatedExactRestore: false);
         }
+    }
+
+    private void RefreshInstalledCatalog()
+    {
+        if (!catalog.RefreshInstalledSources())
+            return;
+        activeMenu?.RefreshCatalog();
+        foreach (IMultiplayerPeer peer in Helper.Multiplayer.GetConnectedPlayers())
+            SendRegistryHello(peer.PlayerID);
     }
 
     private void OnPeerConnected(object? sender, PeerConnectedEventArgs e)
@@ -885,6 +914,7 @@ public sealed class ModEntry : Mod
 
     private void RequestSelection(string? variantValue, string? buildingToken)
     {
+        RefreshInstalledCatalog();
         if (!TryResolveCommandBuilding(buildingToken, out Building building, out InteriorTarget target))
         {
             return;
@@ -1119,6 +1149,7 @@ public sealed class ModEntry : Mod
         string? variantValue,
         out string message)
     {
+        RefreshInstalledCatalog();
         if (!Context.IsMainPlayer)
         {
             message = "Only the host may change shared building state.";
@@ -1161,6 +1192,17 @@ public sealed class ModEntry : Mod
             }
 
             requestedVariant = interior.Definition.Id;
+            if (interior.SourceFamilyId is not null && !interior.IsCurrentSourceConfiguration)
+            {
+                SelectionReadResult previous = SelectionStorage.Read(building, target.Value);
+                if (!previous.IsValid || previous.Selection.Choice is not InteriorChoice.CustomChoice existing
+                    || existing.VariantId != interior.Definition.Id
+                    || existing.ContentHash != interior.Definition.ContentHash)
+                {
+                    message = "This source configuration has changed. Choose the current settings in the interior menu and apply them explicitly.";
+                    return false;
+                }
+            }
             nextMap = GetManagedMapAssetKey(interior, building);
             requested = StoredSelection.Create(
                 SelectionStorage.GetInstanceId(building, target.Value),
