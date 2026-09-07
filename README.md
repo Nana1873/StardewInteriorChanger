@@ -167,7 +167,7 @@ Content Patcher packs do not expose a catalog of independent interiors. They pat
 - Conditions, tokens, configuration, dependencies, and load order can change the result.
 - Later patches receive the already combined result of earlier patches.
 
-The Core could therefore see only the currently resolved final state. It cannot reliably reconstruct the original variants, allowed building types, entrances/exits, dependencies, or permissions. Existing interiors require a native pack or a validated, permissioned adapter.
+The Core could therefore see only the currently resolved final state. It cannot reliably reconstruct the original variants, allowed building types, entrances/exits, dependencies, or permissions. Existing interiors require a native pack or a validated installed-source integration. Distributing third-party content also requires permission for that content.
 
 Official details: [Content Patcher `Load`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-load.md), [`EditMap`](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide/action-editmap.md), and [how multiple patches interact](https://github.com/Pathoschild/StardewMods/blob/develop/ContentPatcher/docs/author-guide.md#how-do-multiple-patches-interact).
 
