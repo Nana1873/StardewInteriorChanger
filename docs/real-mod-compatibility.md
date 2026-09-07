@@ -10,9 +10,17 @@ An adapter must preserve the selected source map's own tilesheets, configuration
 
 ## Current real-mod candidates
 
+### Installed Oasis integration
+
+The installed-source bridge also supports Oasis Greenhouse 1.9.4 with the same reviewed CP 2.9.1 assembly. Both supported originals can remain installed. `UseCellar=true` and `false` resolve through CP, including the original no-cellar overlay; that overlay closes the entrance without removing the underlying cellar or its map properties.
+
+Oasis's source-owned map and string patches are isolated from the shared assets. Each snapshot captures its own texture pixels, localized messages, and a copy of the current Default minecart network. Message and minecart references use a snapshot-specific namespace. Other mods' shared patches remain independent. The original unguarded greenhouse minecart destination is suppressed; SIC adds a return route whose condition requires the exact active, non-quarantined cellar snapshot and the original pantry unlock condition. Base, Ellie, and no-cellar selections cannot offer that route. A retained old cellar snapshot remains eligible even when the latest GMCM setting disables the cellar.
+
+This first Oasis snapshot includes resolved localized text and the farm name in its fingerprint. Different locales can therefore produce different fingerprints, and changing language can leave a previous saved snapshot unavailable after restart. Multiplayer with different locales is not claimed supported. Source actions, routes, pool behavior, and cask behavior require their own live evidence; map registration alone is not acceptance.
+
 ### First installed-source adapter
 
-SIC includes a narrowly scoped adapter for Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Install the original pack alongside SIC; no conversion pack or changes to its files are required. Other CP interior mods, including Oasis, are not registered automatically by this adapter.
+SIC includes a narrowly scoped adapter for Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Install the original pack alongside SIC; no conversion pack or changes to its files are required. Oasis uses the separate bounded integration described above; arbitrary CP interior mods are not registered automatically.
 
 The adapter checks the CP assembly and internal method contracts, the source version, and the reviewed `content.json` recipe. Unsupported combinations produce a diagnostic instead of registering an incomplete variant. Native SIC packs continue to work independently. Supported Ellie map patches are isolated from the shared greenhouse asset; Base uses that shared asset with any remaining patches.
 

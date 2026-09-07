@@ -15,7 +15,8 @@ internal sealed record RuntimeInterior(
     string SourcePackId,
     string SourcePackVersion,
     string? SourceFamilyId = null,
-    bool IsCurrentSourceConfiguration = true)
+    bool IsCurrentSourceConfiguration = true,
+    InstalledSourceRuntimeData? RuntimeData = null)
 {
     public VariantFingerprint Fingerprint => VariantFingerprint.From(Definition);
 
@@ -55,10 +56,15 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
     private readonly InteriorRegistryBuilder registryBuilder = new();
     private readonly InstalledSourceBridge installedBridge;
     private readonly Dictionary<string, TextureSnapshot> textures = new(StringComparer.OrdinalIgnoreCase);
-    private bool sourceDirty = true;
     private bool refreshingSource;
-    private string? lastConfiguration;
-    private string? lastSourceFailure;
+    private readonly Dictionary<string, SourceRefreshState> sourceStates = new(StringComparer.OrdinalIgnoreCase);
+    private sealed class SourceRefreshState
+    {
+        public bool Dirty { get; set; } = true;
+        public string? Configuration { get; set; }
+        public string? Failure { get; set; }
+        public string? Context { get; set; }
+    }
     private readonly Dictionary<VariantId, RuntimeInterior> byId = new();
     private readonly Dictionary<string, RuntimeInterior> byMapAssetKey =
         new(StringComparer.OrdinalIgnoreCase);
@@ -87,12 +93,24 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
 
     public void InvalidateInstalledSources(IEnumerable<string> assetNames)
     {
-        if (!refreshingSource && assetNames.Any(name =>
-                string.Equals(name, InstalledSourceBridge.SharedAsset, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, InstalledSourceBridge.ProxyAsset, StringComparison.OrdinalIgnoreCase)
-                || InstalledSourceSnapshot.AllowedTextureNames.Any(texture =>
-                    string.Equals(name, "Maps/" + texture, StringComparison.OrdinalIgnoreCase))))
-            sourceDirty = true;
+        if (refreshingSource)
+            return;
+        string[] names = assetNames.ToArray();
+        foreach (InstalledSourceProfile profile in installedBridge.Profiles)
+        {
+            if (names.Any(name => profile.SharedAssets.Append(profile.MapProxy).Append(profile.StringsProxy)
+                    .Any(asset => string.Equals(asset, name, StringComparison.OrdinalIgnoreCase))
+                    || name.StartsWith("Maps/", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains(profile.Id, StringComparison.OrdinalIgnoreCase)))
+                GetSourceState(profile).Dirty = true;
+        }
+    }
+
+    private SourceRefreshState GetSourceState(InstalledSourceProfile profile)
+    {
+        if (!sourceStates.TryGetValue(profile.Id, out SourceRefreshState? state))
+            sourceStates[profile.Id] = state = new SourceRefreshState();
+        return state;
     }
 
     public bool RefreshInstalledSources()
@@ -102,47 +120,9 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
         refreshingSource = true;
         try
         {
-            if (installedBridge.SourcePack is null)
-                helper.GameContent.Load<Map>(InstalledSourceBridge.ProxyAsset);
-            IContentPack pack = installedBridge.SourcePack
-                ?? throw new InvalidOperationException("Content Patcher has not exposed the reviewed Ellie source patch.");
-            if (!installedBridge.ValidateRecipe(pack))
-                throw new InvalidOperationException("Ellie's source recipe is unavailable or changed.");
-            string configuration = InstalledSourceSnapshot.ReadConfiguration(pack);
-            if (!sourceDirty && configuration == lastConfiguration)
-                return false;
-            helper.GameContent.InvalidateCache(InstalledSourceBridge.ProxyAsset);
-            InstalledSourceSnapshot resolved = InstalledSourceSnapshot.Capture(helper, installedBridge, configuration);
-            lastConfiguration = configuration;
-            sourceDirty = false;
-            lastSourceFailure = null;
-            bool changed = SetCurrentSource(resolved.Definition.Id);
-            if (!byId.ContainsKey(resolved.Definition.Id))
-            {
-                string key = CreateManagedMapAssetKey(resolved.Definition);
-                var runtime = new RuntimeInterior(resolved.Definition, key, resolved.Map, null,
-                    InstalledSourceBridge.SourceId, InstalledSourceBridge.SourceVersion,
-                    InstalledSourceBridge.SourceId);
-                byId.Add(runtime.Definition.Id, runtime);
-                byMapAssetKey.Add(key, runtime);
-                foreach ((string textureKey, TextureSnapshot texture) in resolved.Textures)
-                    textures.TryAdd(textureKey, texture);
-                changed = true;
-                monitor.Log($"Registered installed Ellie configuration '{configuration}' as '{runtime.Definition.Id}' ({runtime.Definition.ContentHash}).", LogLevel.Info);
-            }
-            if (changed)
-                PublishEntries();
-            return changed;
-        }
-        catch (Exception exception)
-        {
-            sourceDirty = true;
-            if (lastSourceFailure != exception.Message)
-            {
-                lastSourceFailure = exception.Message;
-                monitor.Log($"Installed Ellie snapshot is unavailable: {exception.Message} Existing snapshots are retained; no building was changed.", LogLevel.Warn);
-            }
-            bool changed = SetCurrentSource(null);
+            bool changed = false;
+            foreach (InstalledSourceProfile profile in installedBridge.Profiles)
+                changed |= RefreshSource(profile);
             if (changed)
                 PublishEntries();
             return changed;
@@ -153,10 +133,62 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
         }
     }
 
-    private bool SetCurrentSource(VariantId? current)
+    private bool RefreshSource(InstalledSourceProfile profile)
+    {
+        if (profile.IsOasis && !Context.IsWorldReady)
+            return false;
+        SourceRefreshState state = GetSourceState(profile);
+        try
+        {
+            if (installedBridge.GetPack(profile) is null)
+                helper.GameContent.Load<Map>(profile.MapProxy);
+            IContentPack pack = installedBridge.GetPack(profile)
+                ?? throw new InvalidOperationException($"Content Patcher has not exposed the reviewed {profile.Name} source patch.");
+            if (!installedBridge.ValidateRecipe(profile, pack))
+                throw new InvalidOperationException($"{profile.Name}'s source recipe is unavailable or changed.");
+            string configuration = InstalledSourceSnapshot.ReadConfiguration(pack, profile);
+            string context = profile.IsOasis ? InstalledSourceSnapshot.GetOasisContext() : string.Empty;
+            if (!state.Dirty && configuration == state.Configuration && state.Context == context)
+                return false;
+            helper.GameContent.InvalidateCache(profile.MapProxy);
+            if (profile.IsOasis)
+                helper.GameContent.InvalidateCache(profile.StringsProxy);
+            InstalledSourceSnapshot resolved = InstalledSourceSnapshot.Capture(helper, installedBridge, profile, configuration);
+            state.Configuration = configuration;
+            state.Context = context;
+            state.Dirty = false;
+            state.Failure = null;
+            bool changed = SetCurrentSource(profile.Id, resolved.Definition.Id);
+            if (!byId.ContainsKey(resolved.Definition.Id))
+            {
+                string key = CreateManagedMapAssetKey(resolved.Definition);
+                var runtime = new RuntimeInterior(resolved.Definition, key, resolved.Map, null,
+                    profile.Id, profile.Version, profile.Id, RuntimeData: resolved.RuntimeData);
+                byId.Add(runtime.Definition.Id, runtime);
+                byMapAssetKey.Add(key, runtime);
+                foreach ((string textureKey, TextureSnapshot texture) in resolved.Textures)
+                    textures.TryAdd(textureKey, texture);
+                changed = true;
+                monitor.Log($"Registered installed {profile.Name} configuration '{configuration}' as '{runtime.Definition.Id}' ({runtime.Definition.ContentHash}).", LogLevel.Info);
+            }
+            return changed;
+        }
+        catch (Exception exception)
+        {
+            state.Dirty = true;
+            if (state.Failure != exception.Message)
+            {
+                state.Failure = exception.Message;
+                monitor.Log($"Installed {profile.Name} snapshot is unavailable: {exception.Message} Existing snapshots are retained; no building was changed.", LogLevel.Warn);
+            }
+            return SetCurrentSource(profile.Id, null);
+        }
+    }
+
+    private bool SetCurrentSource(string sourceId, VariantId? current)
     {
         bool changed = false;
-        foreach (RuntimeInterior entry in byId.Values.Where(entry => entry.SourceFamilyId is not null).ToArray())
+        foreach (RuntimeInterior entry in byId.Values.Where(entry => entry.SourceFamilyId == sourceId).ToArray())
         {
             bool isCurrent = entry.Definition.Id == current;
             if (entry.IsCurrentSourceConfiguration == isCurrent)
