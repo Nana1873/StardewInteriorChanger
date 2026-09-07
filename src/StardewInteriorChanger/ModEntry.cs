@@ -1725,6 +1725,16 @@ public sealed class ModEntry : Mod
                     $"Resolved map '{mapAssetKey}' violates the {target} runtime contract: {reason}");
             }
 
+            if (target == InteriorTarget.DeluxeBarn)
+            {
+                TilePoint[] hopperTiles = indoors.Objects.Pairs
+                    .Where(pair => pair.Value.QualifiedItemId == InteriorFixturePolicy.DeluxeBarnFeedHopperId)
+                    .Select(pair => new TilePoint((int)pair.Key.X, (int)pair.Key.Y))
+                    .ToArray();
+                if (!MapContractValidator.TryValidateRetainedFeedHoppers(resolvedMap, hopperTiles, out reason))
+                    throw new InvalidOperationException($"Resolved map '{mapAssetKey}' cannot preserve the existing Feed Hopper: {reason}");
+            }
+
             if (setMapPath)
             {
                 indoors.mapPath.Value = mapAssetKey;
