@@ -7,5 +7,12 @@
   "EntryDll": "StardewInteriorChanger.dll",
   "MinimumApiVersion": "4.5.2",
   "MinimumGameVersion": "1.6.15",
-  "UpdateKeys": []
+  "UpdateKeys": [],
+  "Dependencies": [
+    {
+      "UniqueID": "focustense.StardewUI",
+      "MinimumVersion": "0.6.4-unofficial-mushymato.0",
+      "IsRequired": true
+    }
+  ]
 }

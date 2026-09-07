@@ -1,6 +1,7 @@
 using StardewInteriorChanger.Core;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
+using StardewUI.Framework;
 using StardewValley;
 using StardewValley.Buildings;
 
@@ -45,6 +46,8 @@ public sealed class ModEntry : Mod
     private IInteriorCatalog catalog = null!;
     private ModConfig config = null!;
     private WeakReference<InteriorSelectionMenu>? pendingMenu;
+    private InteriorSelectionMenu? activeMenu;
+    private IViewEngine? viewEngine;
 
     public override void Entry(IModHelper helper)
     {
@@ -63,6 +66,7 @@ public sealed class ModEntry : Mod
         helper.Events.Multiplayer.PeerDisconnected += OnPeerDisconnected;
         helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
         helper.Events.Input.ButtonsChanged += OnButtonsChanged;
+        helper.Events.Display.MenuChanged += OnMenuChanged;
 
         helper.ConsoleCommands.Add(
             "sic",
@@ -74,6 +78,8 @@ public sealed class ModEntry : Mod
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
+        viewEngine = Helper.ModRegistry.GetApi<IViewEngine>("focustense.StardewUI");
+        viewEngine?.RegisterViews("Mods/StardewInteriorChanger.Core/Views", "assets/views");
         catalog.Reload();
         LoadVanillaFallbackMaps();
         PreflightManagedMapAssets();
@@ -248,6 +254,8 @@ public sealed class ModEntry : Mod
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
+        activeMenu?.Dispose();
+        activeMenu = null;
         peerRegistries.Clear();
         pendingClientReconciles.Clear();
         clientReloadedMaps.Clear();
@@ -268,6 +276,7 @@ public sealed class ModEntry : Mod
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
+        activeMenu?.RefreshLayout();
         if (!Context.IsWorldReady || Context.IsOnHostComputer)
         {
             return;
@@ -318,6 +327,23 @@ public sealed class ModEntry : Mod
         peerRegistries.Remove(e.Peer.PlayerID);
         if (remoteHostPlayerId == e.Peer.PlayerID)
         {
+            if (menuRequestTracker.Pending is InteriorMenuRequest request)
+            {
+                menuRequestTracker.TryCancel(request);
+                string message = Helper.Translation.Get("menu.status.host-disconnected");
+                Monitor.Log(message, LogLevel.Warn);
+                if (pendingMenu?.TryGetTarget(out InteriorSelectionMenu? menu) == true
+                    && ReferenceEquals(Game1.activeClickableMenu, menu.Menu))
+                {
+                    menu.HandleSelectionResult(false, request.BuildingId, request.VariantId,
+                        message);
+                }
+                else
+                {
+                    Game1.addHUDMessage(new HUDMessage(message, HUDMessage.error_type));
+                }
+                pendingMenu = null;
+            }
             remoteHostPlayerId = null;
             ResetClientManagedMapState();
         }
@@ -482,7 +508,7 @@ public sealed class ModEntry : Mod
         InteriorSelectionMenu? menu = null;
         pendingMenu?.TryGetTarget(out menu);
         pendingMenu = null;
-        if (menu is not null && ReferenceEquals(Game1.activeClickableMenu, menu))
+        if (menu is not null && ReferenceEquals(Game1.activeClickableMenu, menu.Menu))
         {
             menu.HandleSelectionResult(
                 result.Success,
@@ -1006,20 +1032,52 @@ public sealed class ModEntry : Mod
             selectedId = requested.id.Value;
         }
 
+        if (viewEngine is null)
+        {
+            Monitor.Log(Helper.Translation.Get("menu.open.ui-unavailable"), LogLevel.Error);
+            return;
+        }
+
+        if (menuRequestTracker.Pending is InteriorMenuRequest pendingRequest
+            && (!Guid.TryParse(pendingRequest.BuildingId, out Guid pendingBuildingId)
+                || !buildings.Any(item => item.Building.id.Value == pendingBuildingId)))
+        {
+            Monitor.Log(Helper.Translation.Get("menu.open.pending-target-unavailable"), LogLevel.Warn);
+            return;
+        }
+
         var menu = new InteriorSelectionMenu(
             this,
             Helper,
             Monitor,
             catalog,
+            viewEngine,
             buildings,
-            selectedId);
+            selectedId,
+            menuRequestTracker.Pending);
         if (menuRequestTracker.Pending is not null)
         {
             pendingMenu = new WeakReference<InteriorSelectionMenu>(menu);
             menu.ShowPending();
         }
 
-        Game1.activeClickableMenu = menu;
+        activeMenu = menu;
+        Game1.activeClickableMenu = menu.Menu;
+    }
+
+    private void OnMenuChanged(object? sender, MenuChangedEventArgs e)
+    {
+        if (activeMenu is not null && ReferenceEquals(e.OldMenu, activeMenu.Menu)
+            && !ReferenceEquals(e.NewMenu, activeMenu.Menu))
+        {
+            if (pendingMenu?.TryGetTarget(out InteriorSelectionMenu? pendingView) == true
+                && ReferenceEquals(pendingView, activeMenu))
+            {
+                pendingMenu = null;
+            }
+            activeMenu.Dispose();
+            activeMenu = null;
+        }
     }
 
     private static IReadOnlyList<(Building Building, InteriorTarget Target)>

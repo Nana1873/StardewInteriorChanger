@@ -50,7 +50,7 @@ The technical structure and deliberately open runtime decisions are documented i
 
 ## Development and validation with SDVKit
 
-The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.6.0](https://github.com/Nana1873/SDVKit/releases/tag/v0.6.0) with the expected ZIP SHA-256 `1ec97583767eb682d81fb04935d7c38dcd7a1f5c4f3ed1216474c51997c32844`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
+The current project contract requires Stardew Valley 1.6.15, SMAPI 4.5.2, and the .NET 8 SDK for builds. The mod itself targets .NET 6 to match the game. Live validation exclusively uses a fresh download of public [SDVKit v0.8.0](https://github.com/Nana1873/SDVKit/releases/tag/v0.8.0) with the expected ZIP SHA-256 `0c721ceaf6cc03ff69626fb2ee263d82a7f8f50ac14f77076ebf24fa3c92f35b`; a local SDVKit source build is not a substitute runtime. In the examples below, `sdvkit` refers to the public binary extracted under `.sdvkit/`.
 
 The canonical relative targets are:
 
@@ -65,17 +65,20 @@ Automated validation steps remain independently assessable:
 ```powershell
 sdvkit doctor --json
 sdvkit project inspect .\src\StardewInteriorChanger --json
-dotnet test .\StardewInteriorChanger.sln -c Release
+dotnet test .\StardewInteriorChanger.sln -c Release --artifacts-path .\.sdvkit\dotnet-artifacts
 sdvkit project build .\src\StardewInteriorChanger --json
 sdvkit project package .\src\StardewInteriorChanger --json
-sdvkit project smoke .\src\StardewInteriorChanger --topology single --json
 ```
+
+The published `project smoke` command in the README-pinned SDVKit version has no companion-mod option. It therefore cannot supply the new required StardewUI dependency; bounded smoke acceptance remains blocked until released SDVKit supports that capability. Use `project review start` with an explicit StardewUI companion for interactive validation, but do not report it as a passed bounded smoke test.
 
 SDVKit keeps builds, packages, profiles, saves, staging, logs, screenshots, and process state under `.sdvkit/`. Normal saves, normal or mod-manager-owned mods, and Vortex staging remain outside the workflow.
 
 ## In-game selection menu
 
-Press `F8` while a save is loaded and the player is free to open the native Interior Changer menu. The binding is stored as SMAPI's `KeybindList` in `config.json` under `OpenMenu`, so single keys and key combinations can be configured without an additional mod. The deterministic console and SDVKit entry point is `sic menu [buildingId]`; the optional ID selects that supported building directly.
+The menu uses [StardewUI Continued](https://www.nexusmods.com/stardewvalley/mods/43861). Install its released `0.6.4-unofficial-mushymato.0` build as a separate mod alongside Interior Changer; newer compatible versions require their own validation. The framework is not bundled. Integration details and dependency provenance are in [docs/ui.md](docs/ui.md); upcoming capabilities are tracked in the [development roadmap](ROADMAP.md).
+
+Press `F8` while a save is loaded and the player is free to open the Interior Changer menu. The binding is stored as SMAPI's `KeybindList` in `config.json` under `OpenMenu`, so single keys and key combinations can be configured without a separate configuration mod. The deterministic console and SDVKit entry point is `sic menu [buildingId]`; the optional ID selects that supported building directly.
 
 The menu lists the Greenhouse and every Deluxe Barn as separate targets. Choosing a row only changes the previewed choice. The map-change request is sent only after selecting **Apply**, and an accepted request changes the interior immediately. Sleeping saves the selection that has already been applied; there is no deferred sleep queue.
 
@@ -108,6 +111,7 @@ sdvkit project review start .\src\StardewInteriorChanger `
   --topology single `
   --test-save `
   --companion <prepared-ConsoleCommands-mod-directory> `
+  --companion <prepared-StardewUI-mod-directory> `
   --content-pack .\tests\fixtures\SmokeGreenhousePack `
   --json
 sdvkit project review status --topology single --json
@@ -123,6 +127,7 @@ sdvkit project review start .\src\StardewInteriorChanger `
   --topology single `
   --test-save `
   --companion <prepared-ConsoleCommands-mod-directory> `
+  --companion <prepared-StardewUI-mod-directory> `
   --content-pack .\tests\fixtures\SmokeGreenhousePack `
   --json
 # Verify persistence and Vanilla restore, save, and stop again.
@@ -140,7 +145,7 @@ The following behavior is verified:
 - a real second Farmhand through Stardew's New Farmhand flow;
 - Farmhand requests for Vanilla and custom variants, Host-authorized apply, and an identical target map on Host and client.
 
-Missing-pack and hash-mismatch cases, a peer without the Core, a delayed handshake while a custom interior is already occupied, and the remote-player occupancy gate are not yet considered proven live.
+The previous native-menu review in [PR #5](https://github.com/Nana1873/StardewInteriorChanger/pull/5) also verified rejection while the remote Host occupied the target, followed by a successful Farmhand retry after the Host left. That evidence covers the unchanged selection path, not the replacement StardewUI renderer. Missing-pack and hash-mismatch cases, a peer without the Core, and a delayed handshake while a custom interior is already occupied are not yet considered proven live.
 
 ## Interior packs
 

@@ -37,9 +37,9 @@ Pack authors do not provide a hash. `DisplayName` and a `Preview` outside `Gamep
 
 The Host owns the authoritative mapping from each building instance to a global variant ID. The Greenhouse has one unique target instance; every Deluxe Barn requires a stable building identity. Farmhands may send requests but cannot directly modify the registry or saved selection.
 
-### Native selection menu
+### Selection menu
 
-The optional player interface is a native Stardew `IClickableMenu`; it adds no UI framework or required configuration-mod dependency. Its viewport-derived layout contains independent scrollable building and variant lists plus an optional preview. Mouse, keyboard, and controller snapping all select only local menu state. The shared selection path is entered only by the explicit Apply action.
+The player interface uses StardewUI Continued through its public SMAPI API, with a project-owned StarML view and menu session. The framework supplies the underlying `IClickableMenu`, layout, rendering, scrolling, and focus navigation. Building and variant selection only change local menu state; the shared selection path is entered only by the explicit Apply action. See [Selection UI](ui.md) for the dependency and validation contract.
 
 Base interior is always the first choice and resolves the building's normal game asset path, so compatible Content Patcher changes may be part of the resolved result. A saved custom choice is current only when its global variant ID and gameplay hash both match an installed entry. Invalid data, a missing entry, or a changed hash remains a visible warning and is never represented as Base interior.
 
@@ -116,7 +116,6 @@ A future, explicitly versioned registry-asset integration for Content Patcher is
 ## Deliberately open
 
 - Negative two-process validation for a missing pack, hash mismatch, a peer without the Core, and a delayed handshake.
-- Remote-player occupancy gate in a real Host/Farmhand session.
 - Authorized migration descriptions between substantially different layouts.
 - Additional targets after real verification of the Greenhouse and Deluxe Barn.
 - Farmhouse, Farm Cave, Coop, Shed, and Slime Hutch.

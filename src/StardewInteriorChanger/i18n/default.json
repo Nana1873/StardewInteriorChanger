@@ -28,5 +28,14 @@
   "menu.status.pending-blocked": "Wait for the current host request before applying again.",
   "menu.empty": "No supported Greenhouse or Deluxe Barn exists in this save.",
   "menu.open.not-ready": "Load a save before opening the Interior Changer menu.",
-  "menu.open.unsafe": "The Interior Changer menu can only open while the player is free and no other menu or event is active."
+  "menu.open.unsafe": "The Interior Changer menu can only open while the player is free and no other menu or event is active.",
+  "menu.subtitle": "Choose a building. Find its next interior.",
+  "menu.count": "{{count}} interiors",
+  "menu.building.position": "at {{x}}, {{y}}",
+  "menu.custom.description": "A content-pack interior for this building. Changes apply only after you choose Apply.",
+  "menu.status.ready": "Select an interior to preview it, then apply when you are ready.",
+  "menu.apply.pending": "Waiting for host",
+  "menu.status.host-disconnected": "The host disconnected. The pending request was cancelled.",
+  "menu.open.ui-unavailable": "StardewUI Continued could not be initialized. Check the SMAPI log and install the required version.",
+  "menu.open.pending-target-unavailable": "The building for the pending host request is no longer available. Wait for that request to finish before opening another building."
 }
