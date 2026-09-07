@@ -1,4 +1,30 @@
+> **Development stopped — September 8, 2026.** Development of Stardew Interior Changer has stopped. This repository is an unfinished prototype, not a full release. No further development or release is currently planned.
+>
+> **Want to continue it?** Let me know by opening an issue in this repository, or simply fork it and continue development under the repository's license.
+
 # Stardew Interior Changer
+
+## What currently works
+
+The default branch provides a working SMAPI prototype for selecting interiors of supported buildings **on the farm only**:
+
+- A StardewUI selection menu with previews, explicit Apply, and Base interior selection.
+- Greenhouse and per-building Deluxe Barn variants, with validation before switching and saved selection restoration.
+- Reviewed adapters for **Ellie's Ideal Greenhouse 1.5.0** and **Oasis Greenhouse 1.9.4**, allowing both original mods to be installed and selected independently. Support is version-specific, not automatic compatibility with every interior mod.
+- Occupied-room protection and exact saved-map checks. Focused live tests verified Keg/Cask processing across a restart, rejected unsafe switches, and normal recovery of items and machines.
+- Host-authorized multiplayer selection; the positive Host/Farmhand path has live evidence.
+
+## What remains before a full release
+
+- Complete real-mod acceptance, including uninterrupted GMCM configuration updates, remaining Oasis room actions, and more supported mod/configuration combinations.
+- Finish controller, compact-layout, and multiplayer-menu validation, negative multiplayer cases, and dependency-aware automated smoke acceptance.
+- Complete and validate the additional building work. [Shed/Big Shed draft #14](https://github.com/Nana1873/StardewInteriorChanger/pull/14) has focused switching, decoration, and restart evidence, but the actual building-upgrade gate remains untested. [Barn/Coop adapter draft #15](https://github.com/Nana1873/StardewInteriorChanger/pull/15) covers all six tiers in code but still has a live Nykachu tilesheet compatibility blocker; it is not accepted real-mod support.
+- Implement Farmhouse runtime support and validate upgrades, renovations, family/spouse state, beds, kitchen, cellar, and decoration. The existing preparatory work does not enable Farmhouse selection.
+- Complete release packaging, installation guidance, and final acceptance. No mod release has been published.
+
+Automatic animal relocation is not implemented. Players, animals, decoration, machines, crops, and other persistent content must satisfy the documented safety gates before changing layouts; SIC does not silently remove or relocate them. Generic import of arbitrary interior replacers is also not implemented.
+
+The [roadmap](ROADMAP.md) is retained as a handoff checklist, not a promise of future work. The documentation below describes the default-branch prototype; draft pull requests are unfinished work for a future maintainer.
 
 Stardew Interior Changer is a SMAPI framework that lets players select registered interior variants for supported farm buildings. The building and its saved game state remain intact; only the registered interior map is replaced.
 
@@ -21,7 +47,7 @@ The first installed-source adapter supports Ellie's Ideal Greenhouse 1.5.0 with 
 
 Oasis Greenhouse 1.9.4 can be installed alongside Ellie and selected independently, with or without its cellar entrance. Its textures, messages and minecart network are captured per snapshot; the return route is available only for the active safe cellar layout. Original-pack switching and minecart round trips have passed isolated live review. Keg/Cask placement, processing continuation across a real restart, occupied-switch rejection and normal item recovery also passed. Full maturation, Jukebox, exhaustive room traversal and uninterrupted GMCM updates remain open acceptance checks; resolved localized text currently makes Oasis fingerprints locale-dependent.
 
-The next development priority is completing real-mod compatibility acceptance, followed by additional farm-building targets and eventually a separate farmhouse contract. The [roadmap](ROADMAP.md) tracks the validation steps.
+The remaining real-mod compatibility, additional farm-building, and farmhouse work is recorded in the [handoff roadmap](ROADMAP.md). Active development has stopped.
 
 ## Multiplayer contract
 
@@ -83,7 +109,7 @@ SDVKit keeps builds, packages, profiles, saves, staging, logs, screenshots, and 
 
 ## In-game selection menu
 
-The menu uses [StardewUI Continued](https://www.nexusmods.com/stardewvalley/mods/43861). Install its released `0.6.4-unofficial-mushymato.0` build as a separate mod alongside Interior Changer; newer compatible versions require their own validation. The framework is not bundled. Integration details and dependency provenance are in [docs/ui.md](docs/ui.md); upcoming capabilities are tracked in the [development roadmap](ROADMAP.md).
+The menu uses [StardewUI Continued](https://www.nexusmods.com/stardewvalley/mods/43861). Install its released `0.6.4-unofficial-mushymato.0` build as a separate mod alongside Interior Changer; newer compatible versions require their own validation. The framework is not bundled. Integration details and dependency provenance are in [docs/ui.md](docs/ui.md); unfinished capabilities are recorded in the [handoff roadmap](ROADMAP.md).
 
 Press `F8` while a save is loaded and the player is free to open the Interior Changer menu. The binding is stored as SMAPI's `KeybindList` in `config.json` under `OpenMenu`, so single keys and key combinations can be configured without a separate configuration mod. The deterministic console and SDVKit entry point is `sic menu [buildingId]`; the optional ID selects that supported building directly.
 
