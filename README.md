@@ -6,6 +6,7 @@ Stardew Interior Changer is a SMAPI framework that lets players select registere
 
 ## MVP scope
 
+- Only interiors belonging to buildings on the player's farm are selectable; town buildings and arbitrary world locations are outside the scope.
 - `Greenhouse` as the farm's single greenhouse interior.
 - `DeluxeBarn` as a separately selectable interior for each building instance.
 - Base interior as an explicit, safe selection through the building's normal game asset path.
@@ -15,6 +16,8 @@ Stardew Interior Changer is a SMAPI framework that lets players select registere
 - Multiplayer parity for the Core mod and the exact gameplay hash of every selected variant.
 
 Farmhouse conversions, automatic migration of arbitrary layouts, and automatic import of existing Content Patcher or XNB replacers are outside the MVP scope.
+
+The next development priority is independent selection between real supported interior mods, followed by additional farm-building targets and eventually a separate farmhouse contract. See [real-mod compatibility](docs/real-mod-compatibility.md) for the inspected candidates and integration limits, and the [roadmap](ROADMAP.md) for the validation steps.
 
 ## Multiplayer contract
 
