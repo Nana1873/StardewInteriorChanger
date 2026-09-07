@@ -57,6 +57,8 @@ public sealed class ModEntry : Mod
         catalog = new ContentPackInteriorCatalog(helper, Monitor, ModManifest.UniqueID);
         GameStateQuery.Register(InstalledSourceRuntimeData.QueryId,
             (query, context) => query.Length == 2 && CanOfferOasisReturn(query[1]));
+        GameStateQuery.Register(InstalledSourceRuntimeData.LegacyQueryId,
+            (query, context) => query.Length == 1 && CanOfferOriginalOasisReturn());
 
         helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.Content.AssetsInvalidated += (_, e) =>
@@ -334,6 +336,25 @@ public sealed class ModEntry : Mod
         activeMenu?.RefreshCatalog();
         foreach (IMultiplayerPeer peer in Helper.Multiplayer.GetConnectedPlayers())
             SendRegistryHello(peer.PlayerID);
+    }
+
+    private bool CanOfferOriginalOasisReturn()
+    {
+        if (!Context.IsWorldReady)
+            return false;
+        foreach (Building building in GetFarmBuildings().Where(building => Classify(building) == InteriorTarget.Greenhouse))
+        {
+            SelectionReadResult stored = SelectionStorage.Read(building, InteriorTarget.Greenhouse);
+            if (!stored.IsValid)
+                return false;
+            if (!stored.IsExplicit)
+                return building.GetIndoors() is { } indoors
+                    && !catalog.TryGetManagedMapTarget(indoors.mapPath.Value, out _);
+            // SIC supplies its own verified return when a cellar snapshot is selected.
+            // Never trust coordinates from a rejected source recipe for managed selections.
+            return false;
+        }
+        return false;
     }
 
     private bool CanOfferOasisReturn(string snapshotKey)

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
+using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley.GameData.Minecarts;
 
@@ -14,6 +15,7 @@ internal sealed record InstalledSourceRuntimeData(
     string? MinecartNetworkJson)
 {
     internal const string QueryId = "StardewInteriorChanger_Core_OasisActive";
+    internal const string LegacyQueryId = "StardewInteriorChanger_Core_OasisOriginalReturnSafe";
     internal static string DestinationId(string key) => key + ".Basement";
 
     public MinecartDestinationData CreateReturnDestination() => new()
@@ -30,9 +32,7 @@ internal sealed record InstalledSourceRuntimeData(
     {
         InstalledSourceRuntimeData[] snapshots = interiors.Select(interior => interior.RuntimeData)
             .OfType<InstalledSourceRuntimeData>().ToArray();
-        if (snapshots.Length == 0)
-            return;
-        if (e.NameWithoutLocale.IsEquivalentTo("Strings/StringsFromMaps"))
+        if (snapshots.Length > 0 && e.NameWithoutLocale.IsEquivalentTo("Strings/StringsFromMaps"))
         {
             e.Edit(asset =>
             {
@@ -47,6 +47,18 @@ internal sealed record InstalledSourceRuntimeData(
             e.Edit(asset =>
             {
                 IDictionary<string, MinecartNetworkData> networks = asset.AsDictionary<string, MinecartNetworkData>().Data;
+                // Unsupported or changed source recipes keep their original patches. Guard their
+                // legacy return too whenever SIC is managing a different greenhouse layout.
+                if (networks.TryGetValue("Default", out MinecartNetworkData? original))
+                {
+                    foreach (MinecartDestinationData destination in original.Destinations.Where(destination =>
+                                 destination.Id == "GreenhouseBasement" && destination.TargetLocation == "Greenhouse"))
+                    {
+                        if (destination.Condition?.Contains(LegacyQueryId, StringComparison.Ordinal) != true)
+                            destination.Condition = string.IsNullOrWhiteSpace(destination.Condition)
+                                ? LegacyQueryId : LegacyQueryId + ", " + destination.Condition;
+                    }
+                }
                 foreach (InstalledSourceRuntimeData snapshot in snapshots)
                 {
                     if (snapshot.MinecartNetworkId is null || snapshot.MinecartNetworkJson is null)
@@ -62,7 +74,7 @@ internal sealed record InstalledSourceRuntimeData(
                     }
                     networks[snapshot.MinecartNetworkId] = network;
                 }
-            });
+            }, AssetEditPriority.Late);
         }
     }
 }
