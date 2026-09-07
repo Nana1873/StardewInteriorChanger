@@ -15,6 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(GamePath)\smapi-internal\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Content Include="assets\views\**\*.sml" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="licenses\StardewUI.txt" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />

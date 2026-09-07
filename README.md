@@ -19,6 +19,8 @@ Farmhouse conversions, automatic migration of arbitrary layouts, and automatic i
 
 The first installed-source adapter supports Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Its configured interior becomes a menu choice without converting or editing the original pack. GMCM changes require explicit application; old selected snapshots remain available during the session. Historical configurations are not persisted by SIC, so changing source settings before a restart can leave the old saved selection quarantined until safely resolved. See [real-mod compatibility](docs/real-mod-compatibility.md) for exact requirements and limits.
 
+Oasis Greenhouse 1.9.4 can be installed alongside Ellie and selected independently, with or without its cellar entrance. Its textures, messages and minecart network are captured per snapshot; the return route is available only for the active safe cellar layout. Original-pack switching and minecart round trips have passed isolated live review. Cask aging, Jukebox, exhaustive room traversal and uninterrupted GMCM updates remain open acceptance checks; resolved localized text currently makes Oasis fingerprints locale-dependent.
+
 The next development priority is selection between two real supported interior mods, followed by additional farm-building targets and eventually a separate farmhouse contract. The [roadmap](ROADMAP.md) tracks the validation steps.
 
 ## Multiplayer contract

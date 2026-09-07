@@ -55,6 +55,10 @@ public sealed class ModEntry : Mod
     {
         config = helper.ReadConfig<ModConfig>();
         catalog = new ContentPackInteriorCatalog(helper, Monitor, ModManifest.UniqueID);
+        GameStateQuery.Register(InstalledSourceRuntimeData.QueryId,
+            (query, context) => query.Length == 2 && CanOfferOasisReturn(query[1]));
+        GameStateQuery.Register(InstalledSourceRuntimeData.LegacyQueryId,
+            (query, context) => query.Length == 1 && CanOfferOriginalOasisReturn());
 
         helper.Events.Content.AssetRequested += OnAssetRequested;
         helper.Events.Content.AssetsInvalidated += (_, e) =>
@@ -190,6 +194,7 @@ public sealed class ModEntry : Mod
 
     private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
     {
+        InstalledSourceRuntimeData.EditAssets(e, catalog.Entries);
         string assetName = e.NameWithoutLocale.Name;
         if (catalog.TryGetTexture(assetName, out TextureSnapshot texture))
         {
@@ -290,7 +295,7 @@ public sealed class ModEntry : Mod
         {
             catalogInitialized = true;
             catalog.Reload();
-            catalog.RefreshInstalledSources();
+            RefreshInstalledCatalog();
             LoadVanillaFallbackMaps();
             PreflightManagedMapAssets();
         }
@@ -326,9 +331,61 @@ public sealed class ModEntry : Mod
     {
         if (!catalog.RefreshInstalledSources())
             return;
+        Helper.GameContent.InvalidateCache("Strings/StringsFromMaps");
+        Helper.GameContent.InvalidateCache("Data/Minecarts");
         activeMenu?.RefreshCatalog();
         foreach (IMultiplayerPeer peer in Helper.Multiplayer.GetConnectedPlayers())
             SendRegistryHello(peer.PlayerID);
+    }
+
+    private bool CanOfferOriginalOasisReturn()
+    {
+        if (!Context.IsWorldReady)
+            return false;
+        foreach (Building building in GetFarmBuildings().Where(building => Classify(building) == InteriorTarget.Greenhouse))
+        {
+            SelectionReadResult stored = SelectionStorage.Read(building, InteriorTarget.Greenhouse);
+            if (!stored.IsValid)
+                return false;
+            if (!stored.IsExplicit)
+                return building.GetIndoors() is { } indoors
+                    && !catalog.TryGetManagedMapTarget(indoors.mapPath.Value, out _);
+            // SIC supplies its own verified return when a cellar snapshot is selected.
+            // Never trust coordinates from a rejected source recipe for managed selections.
+            return false;
+        }
+        return false;
+    }
+
+    private bool CanOfferOasisReturn(string snapshotKey)
+    {
+        if (!Context.IsWorldReady)
+            return false;
+        foreach (Building building in GetFarmBuildings())
+        {
+            if (Classify(building) != InteriorTarget.Greenhouse
+                || building.GetIndoors() is not { } indoors
+                || !string.Equals(indoors.NameOrUniqueName, "Greenhouse", StringComparison.Ordinal))
+                continue;
+            SelectionReadResult stored = SelectionStorage.Read(building, InteriorTarget.Greenhouse);
+            if (!stored.IsValid || stored.Selection.Choice is not InteriorChoice.CustomChoice custom
+                || !catalog.TryGet(custom.VariantId, out RuntimeInterior interior)
+                || interior.RuntimeData is not { } data
+                || data.SnapshotKey != snapshotKey)
+                continue;
+            bool peerReady = CanLoadCustomMapOnThisPeer(interior)
+                && (Context.IsOnHostComputer || WasClientMapResolvedAsCustom(indoors.mapPath.Value));
+            return InstalledSourceRoutePolicy.CanOfferReturn(
+                worldReady: true,
+                isFarmGreenhouse: interior.Definition.Target == InteriorTarget.Greenhouse,
+                validSelection: stored.IsExplicit,
+                quarantined: SelectionStorage.RequiresEmptyRestore(building, stored.Selection.TargetContract),
+                cellarSnapshot: data.HasCellar,
+                fingerprintMatches: interior.Definition.ContentHash == custom.ContentHash,
+                loadedMapMatches: AssetNamesEqual(indoors.mapPath.Value, GetManagedMapAssetKey(interior, building)),
+                peerCanLoad: peerReady);
+        }
+        return false;
     }
 
     private void OnPeerConnected(object? sender, PeerConnectedEventArgs e)
