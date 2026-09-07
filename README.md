@@ -35,6 +35,7 @@ Stardew Interior Changer is a SMAPI framework that lets players select registere
 - Only interiors belonging to buildings on the player's farm are selectable; town buildings and arbitrary world locations are outside the scope.
 - `Greenhouse` as the farm's single greenhouse interior.
 - `DeluxeBarn` as a separately selectable interior for each building instance.
+- Development contracts for `Shed` and `BigShed`, retaining canonical wallpaper and flooring regions; focused live acceptance is still pending.
 - Base interior as an explicit, safe selection through the building's normal game asset path.
 - Native interior packs with a small, versioned schema.
 - Host-authorized selection stored in the shared save.
@@ -113,7 +114,7 @@ The menu uses [StardewUI Continued](https://www.nexusmods.com/stardewvalley/mods
 
 Press `F8` while a save is loaded and the player is free to open the Interior Changer menu. The binding is stored as SMAPI's `KeybindList` in `config.json` under `OpenMenu`, so single keys and key combinations can be configured without a separate configuration mod. The deterministic console and SDVKit entry point is `sic menu [buildingId]`; the optional ID selects that supported building directly.
 
-The menu lists the Greenhouse and every Deluxe Barn as separate targets. Choosing a row only changes the previewed choice. The map-change request is sent only after selecting **Apply**, and an accepted request changes the interior immediately. Sleeping saves the selection that has already been applied; there is no deferred sleep queue.
+The menu lists the Greenhouse and each supported farm-building instance as separate targets. Choosing a row only changes the previewed choice. The map-change request is sent only after selecting **Apply**, and an accepted request changes the interior immediately. Sleeping saves the selection that has already been applied; there is no deferred sleep queue.
 
 `Base interior` uses Stardew's normal asset path for that building. It can therefore include compatible Content Patcher replacements active for that asset and should not be interpreted as an unmodified Vanilla file. Missing or changed saved variants remain visible as warnings instead of being presented as Base interior. Optional content-pack previews are cosmetic: Base interior, variants without a preview, and preview load failures use a placeholder, while the actual variant remains available.
 

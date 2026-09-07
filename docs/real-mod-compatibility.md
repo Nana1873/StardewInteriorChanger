@@ -46,6 +46,12 @@ A separate frozen build narrowed the Deluxe Barn Feed Hopper exception to its ca
 
 All 94 Core tests, full mod build, packaging and final public stop/reset passed. These fixture checks verify the narrowed occupancy and destination-geometry rules; they do not add a new third-party barn adapter. Private evidence is `.sdvkit/verification/hopper-safety/`. The real-source machine processing review above used the preceding unchanged artifact; its source-integration evidence is reused for unaffected behavior.
 
+### Oasis action follow-up, 2026-09-07
+
+A later public single review opened the actual Oasis Jukebox action, selected a learned Spring track and pressed Play. Inspected viewport captures establish menu and selection behavior; audible playback was not measured. The remaining cellar-door and spa return routes, explicit swimsuit restoration and no-cellar door collision have not completed their focused checks. Final public stop and fixture reset passed. Private evidence is retained under `.sdvkit/verification/shed-contract/live-candidate1.log` and the isolated profile's `oasis-jukebox` viewport captures.
+
+The same run rejected the new synthetic Shed fixtures at registration because the decoration validator expected XNB tile dimensions rather than SMAPI's scaled TMX dimensions. This does not establish Shed acceptance or affect the preceding accepted original-source evidence.
+
 ### First installed-source adapter
 
 SIC includes a narrowly scoped adapter for Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Install the original pack alongside SIC; no conversion pack or changes to its files are required. Oasis uses the separate bounded integration described above; arbitrary CP interior mods are not registered automatically.

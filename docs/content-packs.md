@@ -74,7 +74,7 @@ Schema version 1:
 | `Interiors` | yes | Array of variant definitions. |
 | `Id` | yes | Stable lowercase ASCII ID matching `[a-z0-9][a-z0-9._-]{0,63}`; `vanilla` is reserved. Global ID: `<PackUniqueID>/<Id>`. Never reuse a published ID for a different layout. |
 | `DisplayName` | yes | Visible name. Purely cosmetic and excluded from the gameplay hash. |
-| `Target` | yes | Exactly `Greenhouse` or `DeluxeBarn` in the MVP. |
+| `Target` | yes | Exactly `Greenhouse`, `DeluxeBarn`, `Shed` or `BigShed`; the Shed contracts are pending live acceptance. |
 | `GameplayRoot` | yes | Directory relative to the pack root. Every file under it contributes to the gameplay hash. |
 | `Map` | yes | Path relative to `GameplayRoot`. The file must resolve within that directory and load as a supported map. |
 | `Preview` | no | Path relative to the pack root. Purely cosmetic and excluded from the gameplay hash when outside `GameplayRoot`; if the file is inside `GameplayRoot`, it is hashed like every gameplay file. |
@@ -100,7 +100,9 @@ Pack authors should therefore:
 - never advertise substantially different layouts as automatically migration-safe;
 - always test multiplayer with a Host and at least one Farmhand.
 
-The current runtime contract requires `Back`, `Buildings`, and `Front` layers with identical positive dimensions for both targets, plus complete groups of five values in the map-level `Warp` property. The first warp must lead to `Farm` with non-negative destination coordinates; its entry point is one tile north of the source and must be walkable within the map under Stardew's tile rules. `Passable` on `Back` blocks movement, while a present `Buildings` tile is walkable only with `Passable` or `Shadow`. Persistent one-way properties such as `Outdoors`, `IsFarm`, `IsGreenhouse`, `TreatAsOutdoors`, `forceLoadPathLayerLights`, `indoorWater`, `LocationContext`, and `SeasonOverride` are not allowed. `DeluxeBarn` also requires the Vanilla contracts verified against Stardew 1.6.15: a non-empty map-level `AutoFeed`, a `ProduceArea` fully inside the map with at least twelve tiles walkable under the same rules, and at least twelve tiles with the `Trough` property on the `Back` layer.
+The current runtime contract requires `Back`, `Buildings`, and `Front` layers with identical positive dimensions for all targets, plus complete groups of five values in the map-level `Warp` property. The first warp must lead to `Farm` with non-negative destination coordinates; its entry point is one tile north of the source and must be walkable within the map under Stardew's tile rules. `Passable` on `Back` blocks movement, while a present `Buildings` tile is walkable only with `Passable` or `Shadow`. Persistent one-way properties such as `Outdoors`, `IsFarm`, `IsGreenhouse`, `TreatAsOutdoors`, `forceLoadPathLayerLights`, `indoorWater`, `LocationContext`, and `SeasonOverride` are not allowed. `DeluxeBarn` also requires the Vanilla contracts verified against Stardew 1.6.15: a non-empty map-level `AutoFeed`, a `ProduceArea` fully inside the map with at least twelve tiles walkable under the same rules, and at least twelve tiles with the `Trough` property on the `Back` layer.
+
+`Shed` and `BigShed` require exactly `WallIDs: Wall` and `FloorIDs: Floor`, with non-empty matching Back-layer decoration markers. Aliases, extra regions, ambiguous markers and animated decoration surfaces are rejected. The canonical `walls_and_floors` sheet must have 16 columns and at least 32 rows, with resolved tile sizes of 16x16 (XNB) or 64x64 (SMAPI TMX). These contracts preserve existing named patterns while rebuilding destination tile coordinates. They do not migrate furniture or machines. See [farm-building contracts](farm-building-contracts.md) for upgrade and validation boundaries.
 
 Every pack-local or mod-local TMX, TSX, or tilesheet dependency must resolve within the variant's `GameplayRoot`. Vanilla tilesheets may continue to be referenced by their game asset names. Symlinks and junctions are not allowed in the pack tree.
 
@@ -120,7 +122,7 @@ An Interior Changer pack is an explicit variant registry, not a generic Content 
 - `Interiors`: required array.
 - `Id`: required lowercase ASCII slug matching `[a-z0-9][a-z0-9._-]{0,63}`; `vanilla` is reserved; global ID is `<PackUniqueID>/<Id>`.
 - `DisplayName`: required cosmetic label; excluded from the gameplay hash.
-- `Target`: required; MVP values are `Greenhouse` and `DeluxeBarn`.
+- `Target`: required; values are `Greenhouse`, `DeluxeBarn`, `Shed` and `BigShed`.
 - `GameplayRoot`: required pack-relative directory; every file below it is gameplay-hashed.
 - `Map`: required path relative to `GameplayRoot`.
 - `Preview`: optional pack-relative cosmetic image; excluded only when it is outside `GameplayRoot`, otherwise hashed like every gameplay file.

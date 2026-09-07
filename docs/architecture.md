@@ -22,7 +22,7 @@ Every variant receives the global ID:
 <PackManifest.UniqueID>/<Interior.Id>
 ```
 
-`Id` remains stable within a published pack. In the MVP, `Target` is exactly `Greenhouse` or `DeluxeBarn`; dimensions and filenames are never guessed to identify a target.
+`Id` remains stable within a published pack. `Target` is exactly `Greenhouse`, `DeluxeBarn`, `Shed` or `BigShed`; dimensions and filenames are never guessed to identify a target.
 
 ### Gameplay hash
 

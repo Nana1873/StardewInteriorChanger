@@ -129,19 +129,34 @@ public readonly record struct TargetContractId(string Value)
 
 public enum InteriorTarget
 {
-    Greenhouse,
-    DeluxeBarn
+    Greenhouse = 0,
+    DeluxeBarn = 1,
+    Shed = 2,
+    BigShed = 3
 }
 
 public static class TargetContracts
 {
     public static readonly TargetContractId Greenhouse = new("greenhouse/v1");
     public static readonly TargetContractId DeluxeBarn = new("deluxe-barn/v1");
+    public static readonly TargetContractId Shed = new("shed/v1");
+    public static readonly TargetContractId BigShed = new("big-shed/v1");
+
+    public static InteriorTarget? ForFarmBuildingType(string? buildingType) => buildingType switch
+    {
+        "Greenhouse" => InteriorTarget.Greenhouse,
+        "Deluxe Barn" => InteriorTarget.DeluxeBarn,
+        "Shed" => InteriorTarget.Shed,
+        "Big Shed" => InteriorTarget.BigShed,
+        _ => null
+    };
 
     public static TargetContractId For(InteriorTarget target) => target switch
     {
         InteriorTarget.Greenhouse => Greenhouse,
         InteriorTarget.DeluxeBarn => DeluxeBarn,
+        InteriorTarget.Shed => Shed,
+        InteriorTarget.BigShed => BigShed,
         _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unknown interior target.")
     };
 }
