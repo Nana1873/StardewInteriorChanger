@@ -29,3 +29,20 @@ The farmhouse is not enabled by the Shed contracts. Cabins and non-farm houses a
 Each new target needs game-free contract tests, a full local build/package and a focused review through the public SDVKit version pinned in the README. Validate separate instances, occupied rejection, map-specific anchors, state preservation, Base restoration and a real save/stop/restart of the same artifact. Synthetic native packs prove bounded target behavior; supported third-party sources require their own real-mod review.
 
 Adding target kinds changes what peers can safely resolve. A protocol minor-version negotiation is insufficient when an older peer cannot recognize the new target's map proxy. The protocol must reject such peers explicitly; static mismatch tests do not replace an authorized multiplayer live review.
+
+### Recorded Shed candidate 2 review
+
+The isolated single-player review used public SDVKit 0.8.0 and the same frozen build before and after a real save/stop/restart: `sha256:43d190a2858abab2e378918c4b8291e7249904ce505352afb029a0e839f7fb02`. The candidate passed 139 Core tests, the Release build and public packaging. These results cover the private synthetic Shed fixture, not arbitrary third-party Shed maps.
+
+Confirmed gates:
+
+- Two Sheds and one Big Shed retained separate building GUIDs, instance map paths and selections. One Shed switched A -> B -> A; the Big Shed switched A -> B.
+- Non-default wallpaper `Wall=10` and flooring `Floor=5` survived the changed decoration coordinates, restart and return to Base. Screenshots recorded the destination patterns; sealed saves independently confirmed the saved dictionaries.
+- New selections were rejected while a player was inside and while a placed Keg occupied the Shed.
+- Spring 2 and Spring 3 sealed saves contained identical selection metadata, full content hashes, decoration dictionaries and object payloads for each building. The retained empty Keg at `(1,1)` had byte-identical serialized data. This does not establish processing, output or timer behavior.
+- Returning the first Shed and Big Shed to Base removed their custom content hashes and preserved their patterns. The second Shed's custom selection and hash remained unchanged. The owned empty Keg was intentionally removed before the Base switch.
+- Final stop and fixture reset completed with staging removed and no reported cleanup problems.
+
+The local evidence bundle is `.sdvkit/verification/shed-contract/`: `state-comparison.md`, the three sealed saves, before/after restart logs, public build/package results and stop/reset records. Screenshots remain in the isolated profile's `Screenshots` directory. Serialized comparisons establish persistence; they do not independently prove visual appearance or in-memory object identity.
+
+The same-GUID Shed -> Big Shed upgrade gate remains incomplete. Robin's construction menu was opened, but the carousel was only partially inspected; no upgrade was selected, initiated or completed. Tier quarantine after an actual upgrade and post-upgrade decoration persistence therefore remain unproven. This is not evidence of a missing blueprint or a construction prerequisite defect. PR #14 remains a draft with this gate open. No multiplayer live review was performed.
