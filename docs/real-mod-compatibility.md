@@ -22,6 +22,14 @@ The old selected snapshot is retained during the process lifetime. This initial 
 
 The adapter supports only the reviewed self-contained map recipe and an explicit allowlist of vanilla tilesheet references. It captures the effective texture pixels behind those references, so later changes cannot mutate an already selected snapshot. Additional source actions, foreign tilesheets, and arbitrary global gameplay patches require their own adapter support.
 
+### Installed Ellie acceptance, 2026-09-07
+
+Public SDVKit v0.8.0 single-player review loaded the original Ellie 1.5.0 recipe with Content Patcher 2.9.1, StardewUI Continued 0.6.4, and GMCM 1.16.0. The frozen SIC artifact registered Spacious automatically; menu selection, natural entry, coherent viewport textures, and rejection while a player remained inside passed. A real GMCM Default action saved Modest and SIC registered a new fingerprint.
+
+The GMCM save changed the staged `config.json`, triggering SDVKit's ownership guard. The review preserved those emitted bytes, stopped through the public tool, copied them into the private test source, and restarted without resetting the work save. The unavailable saved Spacious request remained quarantined; explicit Modest selection then succeeded. After saving and restarting the identical SIC artifact with unchanged Modest settings, the exact selection and fingerprint restored. Natural entry and return to Base (`Maps/Greenhouse`) passed. Final SIC diagnostics were empty, all 21 original source files matched their pre-review hashes, and final stop plus fixture reset succeeded.
+
+This is partial GMCM acceptance: uninterrupted post-save menu refresh, the **Apply updated settings** action, and retention of the old occupied snapshot across that live change still require a review surface that supports legitimate configuration writes. The test did not bypass the ownership guard. Public v0.8.0 bounded smoke also lacks the required companion support and is not reported as passed. Two installed-source switching, Oasis gameplay, and multiplayer are separate uncompleted gates. Private evidence is retained under `.sdvkit/verification/installed-ellie/`.
+
 | Mod | Locally inspected version | First bounded case | Current constraint |
 | --- | --- | --- | --- |
 | [Ellie's Ideal Greenhouse](https://www.nexusmods.com/stardewvalley/mods/7497) | 1.5.0 | Modest Greenhouse, 28 x 28 | Explicit vanilla tilesheet references need normalization for the native dependency contract. |

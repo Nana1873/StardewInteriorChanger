@@ -175,7 +175,9 @@ Official details: [Content Patcher `Load`](https://github.com/Pathoschild/Starde
 
 The Core and official example packs contain only original assets or content whose license explicitly permits the specific use and redistribution. Maps, tilesheets, preview images, or other files from third-party mods are not copied or republished without documented permission. Credit or a link does not replace permission.
 
-A published third-party adapter should:
+Original compatibility code which reads a separately installed mod is distinct from a pack containing third-party content. SIC's installed-source bridge distributes its own integration logic and supported-version metadata, without bundling or editing the original mod. This does not assert the original author's endorsement or grant permission to redistribute their work.
+
+A published pack containing third-party content or derived assets must:
 
 - have the original author's consent;
 - require the original mod as a separate dependency whenever possible;
@@ -183,7 +185,7 @@ A published third-party adapter should:
 - document supported original versions and dependencies;
 - contain no third-party assets unless their license or written permission clearly allows it.
 
-If permission is unclear, no public adapter is shipped. Nexus Mods requires permission for existing user-created content and explicitly states that attribution alone is insufficient. See the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
+If permission for third-party content is unclear, that content is not shipped. This includes derived preview images. Follow the applicable distribution platform's rules; see the [Nexus Mods File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines).
 
 ## License
 
