@@ -112,6 +112,41 @@ internal static class MapContractValidator
         return true;
     }
 
+    public static bool TryValidateRetainedFeedHoppers(
+        Map map,
+        IReadOnlyCollection<TilePoint> hopperTiles,
+        out string reason)
+    {
+        if (hopperTiles.Count == 0)
+        {
+            reason = string.Empty;
+            return true;
+        }
+
+        Layer? back = map.GetLayer("Back");
+        Layer? buildings = map.GetLayer("Buildings");
+        if (back is null || buildings is null
+            || back.LayerWidth != buildings.LayerWidth || back.LayerHeight != buildings.LayerHeight
+            || !TryGetProperty(map.Properties, "Warp", out string warpText)
+            || !TryReadWarps(warpText, out IReadOnlyList<WarpEntry> warps)
+            || !IsUsableFarmExit(warps[0], back, buildings)
+            || !RetainedFixtureReachabilityPolicy.CanPreserve(
+                back.LayerWidth,
+                back.LayerHeight,
+                new TilePoint(warps[0].SourceX, warps[0].SourceY - 1),
+                hopperTiles,
+                tile => back.Tiles[tile.X, tile.Y] is not null,
+                tile => IsTileUsable(back, buildings, tile.X, tile.Y)))
+        {
+            reason = "Every retained Feed Hopper needs usable floor at its existing tile and " +
+                "an adjacent tile reachable from the entrance without crossing a Feed Hopper.";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+
     private static bool TryReadWarps(
         string value,
         out IReadOnlyList<WarpEntry> warps)

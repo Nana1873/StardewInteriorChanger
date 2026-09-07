@@ -45,4 +45,4 @@ All notable changes to this project are documented here. The format is based on 
 ### Fixed
 
 - `sic current <buildingId>` now inspects the requested supported building instead of ignoring the optional building ID.
-- Newly built Deluxe Barns are no longer treated as occupied because of Stardew's built-in Feed Hopper `(BC)99`; genuinely placed objects remain blockers.
+- Newly built Deluxe Barns recognize only the single unchanged built-in Feed Hopper at `(6,3)` as fixed equipment. Extra, moved or stateful hoppers remain occupancy blockers, and destination maps must preserve usable, reachable access to retained hoppers.

@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using StardewInteriorChanger.Core;
 using StardewValley;
 using StardewValley.Buildings;
@@ -20,10 +21,10 @@ internal static class SwitchSafetyInspector
     {
         List<string> blockers = GetTransientBlockers(building, indoors);
 
+        int feedHopperCount = indoors.objects.Values.Count(obj =>
+            obj.QualifiedItemId == InteriorFixturePolicy.DeluxeBarnFeedHopperId);
         int placedObjects = indoors.objects.Pairs.Count(pair =>
-            !InteriorFixturePolicy.IsBuiltInObjectFixture(
-                target,
-                pair.Value.QualifiedItemId));
+            !IsBuiltInObjectFixture(target, indoors, pair.Key, pair.Value, feedHopperCount));
         AddCount(blockers, placedObjects, "placed object(s)");
         AddCount(blockers, indoors.furniture.Count, "piece(s) of furniture");
         AddCount(blockers, indoors.terrainFeatures.Count(), "terrain feature(s) or crop(s)");
@@ -63,6 +64,41 @@ internal static class SwitchSafetyInspector
     public static SwitchSafetyResult InspectExactSaveRestore(
         Building building,
         GameLocation indoors) => new(GetTransientBlockers(building, indoors));
+
+    internal static bool IsBuiltInObjectFixture(
+        InteriorTarget target,
+        GameLocation indoors,
+        Vector2 dictionaryTile,
+        StardewValley.Object obj,
+        int feedHopperCount)
+    {
+        if (target != InteriorTarget.DeluxeBarn
+            || obj.QualifiedItemId != InteriorFixturePolicy.DeluxeBarnFeedHopperId)
+            return false;
+
+        TilePoint? ReadTile(Vector2 value) =>
+            value.X == InteriorFixturePolicy.DeluxeBarnFeedHopperTile.X
+            && value.Y == InteriorFixturePolicy.DeluxeBarnFeedHopperTile.Y
+                ? InteriorFixturePolicy.DeluxeBarnFeedHopperTile : null;
+
+        return InteriorFixturePolicy.IsBuiltInObjectFixture(target, indoors is AnimalHouse,
+            feedHopperCount, new ObjectFixtureState
+            {
+                QualifiedItemId = obj.QualifiedItemId,
+                DictionaryTile = ReadTile(dictionaryTile),
+                ObjectTile = ReadTile(obj.TileLocation),
+                IsPlainObject = obj.GetType() == typeof(StardewValley.Object),
+                Fragility = obj.Fragility,
+                Stack = obj.Stack,
+                HasHeldObject = obj.heldObject.Value is not null,
+                MinutesUntilReady = obj.MinutesUntilReady,
+                ReadyForHarvest = obj.readyForHarvest.Value,
+                HasLastInput = obj.lastInputItem.Value is not null,
+                HasLastOutputRule = !string.IsNullOrEmpty(obj.lastOutputRuleId.Value),
+                HasModData = obj.modData.Any(),
+                HasMachineData = obj.GetMachineData() is not null,
+            });
+    }
 
     private static List<string> GetTransientBlockers(
         Building building,
