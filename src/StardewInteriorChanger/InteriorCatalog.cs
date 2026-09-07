@@ -13,7 +13,9 @@ internal sealed record RuntimeInterior(
     MapSnapshot Map,
     string? PreviewAssetKey,
     string SourcePackId,
-    string SourcePackVersion)
+    string SourcePackVersion,
+    string? SourceFamilyId = null,
+    bool IsCurrentSourceConfiguration = true)
 {
     public VariantFingerprint Fingerprint => VariantFingerprint.From(Definition);
 
@@ -27,6 +29,14 @@ internal interface IInteriorCatalog
     IReadOnlyList<VariantFingerprint> Fingerprints { get; }
 
     void Reload();
+
+    void AttachInstalledSources();
+
+    bool RefreshInstalledSources();
+
+    void InvalidateInstalledSources(IEnumerable<string> assetNames);
+
+    bool TryGetTexture(string assetName, out TextureSnapshot texture);
 
     bool TryGet(string value, out RuntimeInterior interior);
 
@@ -43,6 +53,12 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
     private readonly IMonitor monitor;
     private readonly string managedMapPrefix;
     private readonly InteriorRegistryBuilder registryBuilder = new();
+    private readonly InstalledSourceBridge installedBridge;
+    private readonly Dictionary<string, TextureSnapshot> textures = new(StringComparer.OrdinalIgnoreCase);
+    private bool sourceDirty = true;
+    private bool refreshingSource;
+    private string? lastConfiguration;
+    private string? lastSourceFailure;
     private readonly Dictionary<VariantId, RuntimeInterior> byId = new();
     private readonly Dictionary<string, RuntimeInterior> byMapAssetKey =
         new(StringComparer.OrdinalIgnoreCase);
@@ -55,6 +71,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
         this.helper = helper;
         this.monitor = monitor;
         managedMapPrefix = $"Mods/{coreModId}/InteriorMaps";
+        installedBridge = new InstalledSourceBridge(helper, monitor, coreModId);
     }
 
     public IReadOnlyList<RuntimeInterior> Entries { get; private set; } =
@@ -62,6 +79,101 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
 
     public IReadOnlyList<VariantFingerprint> Fingerprints { get; private set; } =
         Array.Empty<VariantFingerprint>();
+
+    public void AttachInstalledSources() => installedBridge.Attach();
+
+    public bool TryGetTexture(string assetName, out TextureSnapshot texture) =>
+        textures.TryGetValue(NormalizeAssetName(assetName), out texture!);
+
+    public void InvalidateInstalledSources(IEnumerable<string> assetNames)
+    {
+        if (!refreshingSource && assetNames.Any(name =>
+                string.Equals(name, InstalledSourceBridge.SharedAsset, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, InstalledSourceBridge.ProxyAsset, StringComparison.OrdinalIgnoreCase)
+                || InstalledSourceSnapshot.AllowedTextureNames.Any(texture =>
+                    string.Equals(name, "Maps/" + texture, StringComparison.OrdinalIgnoreCase))))
+            sourceDirty = true;
+    }
+
+    public bool RefreshInstalledSources()
+    {
+        if (!installedBridge.Enabled || refreshingSource)
+            return false;
+        refreshingSource = true;
+        try
+        {
+            if (installedBridge.SourcePack is null)
+                helper.GameContent.Load<Map>(InstalledSourceBridge.ProxyAsset);
+            IContentPack pack = installedBridge.SourcePack
+                ?? throw new InvalidOperationException("Content Patcher has not exposed the reviewed Ellie source patch.");
+            if (!installedBridge.ValidateRecipe(pack))
+                throw new InvalidOperationException("Ellie's source recipe is unavailable or changed.");
+            string configuration = InstalledSourceSnapshot.ReadConfiguration(pack);
+            if (!sourceDirty && configuration == lastConfiguration)
+                return false;
+            helper.GameContent.InvalidateCache(InstalledSourceBridge.ProxyAsset);
+            InstalledSourceSnapshot resolved = InstalledSourceSnapshot.Capture(helper, installedBridge, configuration);
+            lastConfiguration = configuration;
+            sourceDirty = false;
+            lastSourceFailure = null;
+            bool changed = SetCurrentSource(resolved.Definition.Id);
+            if (!byId.ContainsKey(resolved.Definition.Id))
+            {
+                string key = CreateManagedMapAssetKey(resolved.Definition);
+                var runtime = new RuntimeInterior(resolved.Definition, key, resolved.Map, null,
+                    InstalledSourceBridge.SourceId, InstalledSourceBridge.SourceVersion,
+                    InstalledSourceBridge.SourceId);
+                byId.Add(runtime.Definition.Id, runtime);
+                byMapAssetKey.Add(key, runtime);
+                foreach ((string textureKey, TextureSnapshot texture) in resolved.Textures)
+                    textures.TryAdd(textureKey, texture);
+                changed = true;
+                monitor.Log($"Registered installed Ellie configuration '{configuration}' as '{runtime.Definition.Id}' ({runtime.Definition.ContentHash}).", LogLevel.Info);
+            }
+            if (changed)
+                PublishEntries();
+            return changed;
+        }
+        catch (Exception exception)
+        {
+            sourceDirty = true;
+            if (lastSourceFailure != exception.Message)
+            {
+                lastSourceFailure = exception.Message;
+                monitor.Log($"Installed Ellie snapshot is unavailable: {exception.Message} Existing snapshots are retained; no building was changed.", LogLevel.Warn);
+            }
+            bool changed = SetCurrentSource(null);
+            if (changed)
+                PublishEntries();
+            return changed;
+        }
+        finally
+        {
+            refreshingSource = false;
+        }
+    }
+
+    private bool SetCurrentSource(VariantId? current)
+    {
+        bool changed = false;
+        foreach (RuntimeInterior entry in byId.Values.Where(entry => entry.SourceFamilyId is not null).ToArray())
+        {
+            bool isCurrent = entry.Definition.Id == current;
+            if (entry.IsCurrentSourceConfiguration == isCurrent)
+                continue;
+            RuntimeInterior updated = entry with { IsCurrentSourceConfiguration = isCurrent };
+            byId[entry.Definition.Id] = updated;
+            byMapAssetKey[entry.MapAssetKey] = updated;
+            changed = true;
+        }
+        return changed;
+    }
+
+    private void PublishEntries()
+    {
+        Entries = byId.Values.OrderBy(entry => entry.Definition.Id.Value, StringComparer.Ordinal).ToArray();
+        Fingerprints = Entries.Select(entry => entry.Fingerprint).ToArray();
+    }
 
     public bool TryGet(string value, out RuntimeInterior interior)
     {
@@ -128,8 +240,11 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
 
     public void Reload()
     {
-        byId.Clear();
-        byMapAssetKey.Clear();
+        foreach (RuntimeInterior entry in byId.Values.Where(entry => entry.SourceFamilyId is null).ToArray())
+        {
+            byId.Remove(entry.Definition.Id);
+            byMapAssetKey.Remove(entry.MapAssetKey);
+        }
 
         foreach (IContentPack pack in helper.ContentPacks.GetOwned()
                      .OrderBy(pack => pack.Manifest.UniqueID, StringComparer.OrdinalIgnoreCase))
@@ -137,10 +252,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
             LoadPack(pack);
         }
 
-        Entries = byId.Values
-            .OrderBy(entry => entry.Definition.Id.Value, StringComparer.Ordinal)
-            .ToArray();
-        Fingerprints = Entries.Select(entry => entry.Fingerprint).ToArray();
+        PublishEntries();
 
         monitor.Log(
             $"Loaded {Entries.Count} structurally valid interior variant(s) " +

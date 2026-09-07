@@ -21,6 +21,8 @@
   "menu.preview.none": "No preview supplied by this content pack.",
   "menu.preview.failed": "The preview could not be loaded. The interior can still be applied.",
   "menu.apply": "Apply",
+  "menu.apply.settings": "Apply updated settings",
+  "menu.status.settings-changed": "New settings are available. Select the updated interior to apply them; the current layout stays unchanged until then.",
   "menu.apply.current": "Already current",
   "menu.status.pending": "Sending / Pending — waiting for the host…",
   "menu.status.applied": "Applied — {{message}}",

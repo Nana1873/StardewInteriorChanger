@@ -17,7 +17,9 @@ Stardew Interior Changer is a SMAPI framework that lets players select registere
 
 Farmhouse conversions, automatic migration of arbitrary layouts, and automatic import of existing Content Patcher or XNB replacers are outside the MVP scope.
 
-The next development priority is independent selection between real supported interior mods, followed by additional farm-building targets and eventually a separate farmhouse contract. See [real-mod compatibility](docs/real-mod-compatibility.md) for the inspected candidates and integration limits, and the [roadmap](ROADMAP.md) for the validation steps.
+The first installed-source adapter supports Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Its configured interior becomes a menu choice without converting or editing the original pack. GMCM changes require explicit application; old selected snapshots remain available during the session. Historical configurations are not persisted by SIC, so changing source settings before a restart can leave the old saved selection quarantined until safely resolved. See [real-mod compatibility](docs/real-mod-compatibility.md) for exact requirements and limits.
+
+The next development priority is selection between two real supported interior mods, followed by additional farm-building targets and eventually a separate farmhouse contract. The [roadmap](ROADMAP.md) tracks the validation steps.
 
 ## Multiplayer contract
 
