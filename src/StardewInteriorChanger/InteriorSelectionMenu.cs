@@ -151,7 +151,17 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
         this.monitor = monitor;
         this.catalog = catalog;
         buildings = supportedBuildings.Select(item => new InteriorMenuBuilding(item.Building, item.Target,
-            T(item.Target == InteriorTarget.Greenhouse ? "menu.building.greenhouse" : "menu.building.barn") + " · " +
+            T(item.Target switch
+            {
+                InteriorTarget.Greenhouse => "menu.building.greenhouse",
+                InteriorTarget.Barn => "menu.building.basic-barn",
+                InteriorTarget.BigBarn => "menu.building.big-barn",
+                InteriorTarget.DeluxeBarn => "menu.building.barn",
+                InteriorTarget.Coop => "menu.building.coop",
+                InteriorTarget.BigCoop => "menu.building.big-coop",
+                InteriorTarget.DeluxeCoop => "menu.building.deluxe-coop",
+                _ => throw new ArgumentOutOfRangeException(nameof(item.Target))
+            }) + " · " +
             T("menu.building.position", new { x = item.Building.tileX.Value, y = item.Building.tileY.Value }))).ToArray();
         BuildingLabels = buildings.Select(item => item.Label).ToArray();
         Guid? requestedId = pendingRequest is not null && Guid.TryParse(pendingRequest.BuildingId, out Guid pendingId)

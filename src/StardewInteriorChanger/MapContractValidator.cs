@@ -9,8 +9,6 @@ namespace StardewInteriorChanger;
 
 internal static class MapContractValidator
 {
-    private const int DeluxeBarnCapacity = 12;
-
     private static readonly string[] OneWayLocationProperties =
     {
         "Outdoors",
@@ -26,7 +24,8 @@ internal static class MapContractValidator
     public static bool TryValidate(
         InteriorTarget target,
         Map map,
-        out string reason)
+        out string reason,
+        bool allowReversibleGreenhouseState = false)
     {
         Layer? back = map.GetLayer("Back");
         Layer? buildings = map.GetLayer("Buildings");
@@ -52,7 +51,7 @@ internal static class MapContractValidator
             return false;
         }
 
-        if (!TryValidateOneWayLocationProperties(target, map, out reason))
+        if (!TryValidateOneWayLocationProperties(target, map, allowReversibleGreenhouseState, out reason))
         {
             return false;
         }
@@ -72,20 +71,20 @@ internal static class MapContractValidator
             return false;
         }
 
-        if (target == InteriorTarget.DeluxeBarn)
+        if (AnimalHouseTargetContracts.TryGet(target, out AnimalHouseTargetContract contract))
         {
             int troughTiles = CountTilesWithProperty(back, "Trough");
-            if (troughTiles < DeluxeBarnCapacity)
+            if (troughTiles < contract.Capacity)
             {
-                reason = $"A Deluxe Barn needs at least {DeluxeBarnCapacity.ToString(CultureInfo.InvariantCulture)} " +
+                reason = $"A {contract.BuildingType} needs at least {contract.Capacity.ToString(CultureInfo.InvariantCulture)} " +
                     "Back-layer Trough tiles for its animal capacity.";
                 return false;
             }
 
-            if (!TryGetProperty(map.Properties, "AutoFeed", out string autoFeed)
-                || string.IsNullOrWhiteSpace(autoFeed))
+            if (contract.RequiresAutoFeed && (!TryGetProperty(map.Properties, "AutoFeed", out string autoFeed)
+                || string.IsNullOrWhiteSpace(autoFeed)))
             {
-                reason = "A Deluxe Barn needs a non-empty map-level AutoFeed property.";
+                reason = $"A {contract.BuildingType} needs a non-empty map-level AutoFeed property.";
                 return false;
             }
 
@@ -93,17 +92,17 @@ internal static class MapContractValidator
                 || !TryReadRectangle(produceArea, out int x, out int y, out int width, out int height)
                 || !IsRectangleInBounds(back, x, y, width, height))
             {
-                reason = "A Deluxe Barn needs an in-bounds map-level ProduceArea rectangle.";
+                reason = $"A {contract.BuildingType} needs an in-bounds map-level ProduceArea rectangle.";
                 return false;
             }
 
             long produceTileCount = (long)width * height;
             int usableProduceTiles = CountUsableTiles(back, buildings, x, y, width, height);
-            if (produceTileCount < DeluxeBarnCapacity
-                || usableProduceTiles < DeluxeBarnCapacity)
+            if (produceTileCount < contract.Capacity
+                || usableProduceTiles < contract.Capacity)
             {
-                reason = $"A Deluxe Barn ProduceArea needs at least " +
-                    $"{DeluxeBarnCapacity.ToString(CultureInfo.InvariantCulture)} usable tiles.";
+                reason = $"A {contract.BuildingType} ProduceArea needs at least " +
+                    $"{contract.Capacity.ToString(CultureInfo.InvariantCulture)} usable tiles.";
                 return false;
             }
         }
@@ -112,12 +111,12 @@ internal static class MapContractValidator
         return true;
     }
 
-    public static bool TryValidateRetainedFeedHoppers(
+    public static bool TryValidateRetainedFixtures(
         Map map,
-        IReadOnlyCollection<TilePoint> hopperTiles,
+        IReadOnlyCollection<TilePoint> fixtureTiles,
         out string reason)
     {
-        if (hopperTiles.Count == 0)
+        if (fixtureTiles.Count == 0)
         {
             reason = string.Empty;
             return true;
@@ -134,12 +133,12 @@ internal static class MapContractValidator
                 back.LayerWidth,
                 back.LayerHeight,
                 new TilePoint(warps[0].SourceX, warps[0].SourceY - 1),
-                hopperTiles,
+                fixtureTiles,
                 tile => back.Tiles[tile.X, tile.Y] is not null,
                 tile => IsTileUsable(back, buildings, tile.X, tile.Y)))
         {
-            reason = "Every retained Feed Hopper needs usable floor at its existing tile and " +
-                "an adjacent tile reachable from the entrance without crossing a Feed Hopper.";
+            reason = "Every retained Feed Hopper or Incubator needs usable floor at its existing tile and " +
+                "an adjacent tile reachable from the entrance without crossing retained equipment.";
             return false;
         }
 
@@ -225,6 +224,7 @@ internal static class MapContractValidator
     private static bool TryValidateOneWayLocationProperties(
         InteriorTarget target,
         Map map,
+        bool allowReversibleGreenhouseState,
         out string reason)
     {
         // Stardew 1.6.15 applies these map-driven states only when present and
@@ -233,6 +233,10 @@ internal static class MapContractValidator
         // and IsFarm come from the location/building identity instead.
         foreach (string propertyName in OneWayLocationProperties)
         {
+            if (propertyName == "IsGreenhouse" && allowReversibleGreenhouseState
+                && AnimalHouseTargetContracts.TryGet(target, out _)
+                && TryGetProperty(map.Properties, propertyName, out string greenhouse) && greenhouse == "T")
+                continue;
             if (map.Properties.ContainsKey(propertyName))
             {
                 reason = $"Map property '{propertyName}' isn't allowed for {target}: " +

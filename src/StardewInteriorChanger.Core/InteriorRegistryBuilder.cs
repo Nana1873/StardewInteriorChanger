@@ -132,7 +132,7 @@ public sealed class InteriorRegistryBuilder
         {
             entryDiagnostics.Add(Error(
                 RegistryDiagnosticCode.InvalidTarget,
-                "Target must be exactly 'Greenhouse' or 'DeluxeBarn'.",
+                "Target must be exactly 'Greenhouse', 'Barn', 'BigBarn', 'DeluxeBarn', 'Coop', 'BigCoop', or 'DeluxeCoop'.",
                 index,
                 definition.Id,
                 nameof(definition.Target)));
@@ -402,7 +402,8 @@ public sealed class InteriorRegistryBuilder
 
     private static bool TryParseTarget(string? value, out InteriorTarget target) =>
         Enum.TryParse(value, ignoreCase: false, out target)
-        && Enum.IsDefined(typeof(InteriorTarget), target);
+        && Enum.IsDefined(typeof(InteriorTarget), target)
+        && string.Equals(value, target.ToString(), StringComparison.Ordinal);
 
     private static RegistryDiagnostic Error(
         RegistryDiagnosticCode code,

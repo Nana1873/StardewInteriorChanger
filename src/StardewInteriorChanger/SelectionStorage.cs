@@ -28,6 +28,16 @@ internal static class SelectionStorage
 
         if (!building.modData.TryGetValue(choiceKey, out string? rawChoice))
         {
+            if (AnimalHouseTargetContracts.TryGet(target, out AnimalHouseTargetContract currentTier))
+            {
+                foreach (AnimalHouseTargetContract otherTier in AnimalHouseTargetContracts.All.Where(candidate =>
+                    candidate.Target != target && candidate.OccupantType == currentTier.OccupantType))
+                {
+                    if (building.modData.TryGetValue(Key(TargetContracts.For(otherTier.Target), "Choice"), out string? otherChoice)
+                        && !string.Equals(otherChoice, VanillaValue, StringComparison.Ordinal))
+                        return Invalid(instance, contract, "a custom selection belongs to another animal-house tier; explicitly choose an interior for this tier");
+                }
+            }
             return new SelectionReadResult(
                 true,
                 false,

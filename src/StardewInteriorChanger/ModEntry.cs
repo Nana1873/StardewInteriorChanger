@@ -31,8 +31,8 @@ internal sealed record SelectionSubmission(bool IsPending, bool Success, string 
 
 public sealed class ModEntry : Mod
 {
-    internal const ushort MultiplayerProtocolMajor = 1;
-    internal const ushort MultiplayerProtocolMinor = 0;
+    internal const ushort MultiplayerProtocolMajor = InteriorProtocol.Major;
+    internal const ushort MultiplayerProtocolMinor = InteriorProtocol.Minor;
 
     private readonly Dictionary<long, PeerRegistrySnapshot> peerRegistries = new();
     private readonly Dictionary<Guid, PendingClientReconcile> pendingClientReconciles = new();
@@ -105,7 +105,8 @@ public sealed class ModEntry : Mod
                 if (!MapContractValidator.TryValidate(
                         interior.Definition.Target,
                         resolved,
-                        out string reason))
+                        out string reason,
+                        interior.SupportsReversibleGreenhouseState))
                 {
                     throw new InvalidOperationException(reason);
                 }
@@ -139,8 +140,9 @@ public sealed class ModEntry : Mod
         var assets = new Dictionary<InteriorTarget, string>
         {
             [InteriorTarget.Greenhouse] = "Maps/Greenhouse",
-            [InteriorTarget.DeluxeBarn] = "Maps/Barn3",
         };
+        foreach (AnimalHouseTargetContract contract in AnimalHouseTargetContracts.All)
+            assets[contract.Target] = contract.MapAsset;
 
         foreach ((InteriorTarget target, string assetName) in assets)
         {
@@ -926,7 +928,7 @@ public sealed class ModEntry : Mod
 
         Monitor.Log(
             targets.Length == 0
-                ? "No supported Greenhouse or Deluxe Barn exists in this save."
+                ? "No supported Greenhouse, Barn, or Coop exists on this farm."
                 : "Supported interior targets:\n" + string.Join("\n", targets),
             LogLevel.Info);
     }
@@ -1172,7 +1174,7 @@ public sealed class ModEntry : Mod
             .Select(building => (Building: building, Target: Classify(building)))
             .Where(item => item.Target is not null && item.Building.GetIndoors() is not null)
             .Select(item => (Building: item.Building, Target: item.Target!.Value))
-            .OrderBy(item => item.Target == InteriorTarget.Greenhouse ? 0 : 1)
+            .OrderBy(item => item.Target)
             .ThenBy(item => item.Building.tileY.Value)
             .ThenBy(item => item.Building.tileX.Value)
             .ThenBy(item => item.Building.id.Value)
@@ -1217,7 +1219,7 @@ public sealed class ModEntry : Mod
         GameLocation? indoors = building.GetIndoors();
         if (target is null || indoors is null)
         {
-            message = "Only loaded Greenhouses and Deluxe Barns are supported.";
+            message = "Only loaded Greenhouses and supported Barn or Coop tiers on the farm are supported.";
             return false;
         }
 
@@ -1663,7 +1665,7 @@ public sealed class ModEntry : Mod
         {
             if (mapChanged && !AssetNamesEqual(indoors.mapPath.Value, previousMap))
             {
-                ApplyResolvedMap(building, indoors, target, previousMap, setMapPath: true);
+                ApplyResolvedMap(building, indoors, target, previousMap, setMapPath: true, isRollback: true);
             }
         }
         catch (Exception exception)
@@ -1703,9 +1705,26 @@ public sealed class ModEntry : Mod
         GameLocation indoors,
         InteriorTarget target,
         string mapAssetKey,
-        bool setMapPath)
+        bool setMapPath,
+        bool isRollback = false)
     {
         bool isManagedMap = catalog.TryGetManagedMapTarget(mapAssetKey, out _);
+        AnimalHouse? animalHouse = null;
+        if (AnimalHouseTargetContracts.TryGet(target, out _))
+        {
+            animalHouse = indoors as AnimalHouse
+                ?? throw new InvalidOperationException("The building interior isn't an AnimalHouse location.");
+            if (!animalHouse.isStructure.Value)
+                throw new InvalidOperationException("The animal house isn't an instanced building location.");
+            if (!isRollback && animalHouse.isGreenhouse.Value
+                && !(catalog.TryGetByMapAssetKey(indoors.mapPath.Value, out RuntimeInterior previousInterior)
+                    && previousInterior.SupportsReversibleGreenhouseState))
+                throw new InvalidOperationException("The animal house has unreviewed greenhouse state; it cannot be reset by an interior selection.");
+        }
+        bool previousGreenhouse = animalHouse?.isGreenhouse.Value ?? false;
+        bool allowGreenhouse = animalHouse is not null
+            && catalog.TryGetByMapAssetKey(mapAssetKey, out RuntimeInterior destinationInterior)
+            && destinationInterior.SupportsReversibleGreenhouseState;
         try
         {
             if (isManagedMap)
@@ -1719,20 +1738,31 @@ public sealed class ModEntry : Mod
             }
 
             xTile.Map resolvedMap = Helper.GameContent.Load<xTile.Map>(mapAssetKey);
-            if (!MapContractValidator.TryValidate(target, resolvedMap, out string reason))
+            if (!MapContractValidator.TryValidate(target, resolvedMap, out string reason, allowGreenhouse))
             {
                 throw new InvalidOperationException(
                     $"Resolved map '{mapAssetKey}' violates the {target} runtime contract: {reason}");
             }
 
-            if (target == InteriorTarget.DeluxeBarn)
+            if (animalHouse is not null)
             {
-                TilePoint[] hopperTiles = indoors.Objects.Pairs
-                    .Where(pair => pair.Value.QualifiedItemId == InteriorFixturePolicy.DeluxeBarnFeedHopperId)
-                    .Select(pair => new TilePoint((int)pair.Key.X, (int)pair.Key.Y))
-                    .ToArray();
-                if (!MapContractValidator.TryValidateRetainedFeedHoppers(resolvedMap, hopperTiles, out reason))
-                    throw new InvalidOperationException($"Resolved map '{mapAssetKey}' cannot preserve the existing Feed Hopper: {reason}");
+                var fixtureTiles = new List<TilePoint>();
+                foreach (var pair in indoors.Objects.Pairs.Where(pair =>
+                    pair.Value.QualifiedItemId is InteriorFixturePolicy.DeluxeBarnFeedHopperId or IncubatorFixturePolicy.ItemId))
+                {
+                    var tile = pair.Key;
+                    if (!float.IsFinite(tile.X) || !float.IsFinite(tile.Y)
+                        || tile.X != MathF.Truncate(tile.X) || tile.Y != MathF.Truncate(tile.Y)
+                        || tile.X < 0 || tile.Y < 0 || tile.X >= int.MaxValue || tile.Y >= int.MaxValue)
+                        throw new InvalidOperationException("Retained equipment has an invalid tile position.");
+                    fixtureTiles.Add(new TilePoint((int)tile.X, (int)tile.Y));
+                }
+                if (!MapContractValidator.TryValidateRetainedFixtures(resolvedMap, fixtureTiles, out reason))
+                    throw new InvalidOperationException($"Resolved map '{mapAssetKey}' cannot preserve existing equipment: {reason}");
+                // loadMap only sets this net field when its map property is present.
+                // Set the explicit destination first so leaving a reviewed Green
+                // snapshot restores the native season behavior during the reload.
+                animalHouse.isGreenhouse.Value = allowGreenhouse && resolvedMap.Properties.ContainsKey("IsGreenhouse");
             }
 
             if (setMapPath)
@@ -1752,6 +1782,8 @@ public sealed class ModEntry : Mod
         }
         catch
         {
+            if (animalHouse is not null)
+                animalHouse.isGreenhouse.Value = previousGreenhouse;
             clientReloadedMaps.Remove(building.id.Value);
             if (!Context.IsOnHostComputer && isManagedMap)
             {
@@ -1913,7 +1945,7 @@ public sealed class ModEntry : Mod
         string instanceToken = interior.Definition.Target switch
         {
             InteriorTarget.Greenhouse => "greenhouse",
-            InteriorTarget.DeluxeBarn => building.id.Value.ToString("N"),
+            _ when AnimalHouseTargetContracts.TryGet(interior.Definition.Target, out _) => building.id.Value.ToString("N"),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(interior),
                 interior.Definition.Target,
@@ -1961,8 +1993,7 @@ public sealed class ModEntry : Mod
         building.buildingType.Value switch
         {
             "Greenhouse" => InteriorTarget.Greenhouse,
-            "Deluxe Barn" => InteriorTarget.DeluxeBarn,
-            _ => null,
+            _ => AnimalHouseTargetContracts.ForBuildingType(building.buildingType.Value),
         };
 
     private static string ShortHash(ContentHash hash) =>

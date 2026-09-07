@@ -16,7 +16,8 @@ internal sealed record RuntimeInterior(
     string SourcePackVersion,
     string? SourceFamilyId = null,
     bool IsCurrentSourceConfiguration = true,
-    InstalledSourceRuntimeData? RuntimeData = null)
+    InstalledSourceRuntimeData? RuntimeData = null,
+    bool SupportsReversibleGreenhouseState = false)
 {
     public VariantFingerprint Fingerprint => VariantFingerprint.From(Definition);
 
@@ -55,6 +56,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
     private readonly string managedMapPrefix;
     private readonly InteriorRegistryBuilder registryBuilder = new();
     private readonly InstalledSourceBridge installedBridge;
+    private readonly AnimalSourceTextureCapture animalTextureCapture;
     private readonly Dictionary<string, TextureSnapshot> textures = new(StringComparer.OrdinalIgnoreCase);
     private bool refreshingSource;
     private readonly Dictionary<string, SourceRefreshState> sourceStates = new(StringComparer.OrdinalIgnoreCase);
@@ -64,6 +66,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
         public string? Configuration { get; set; }
         public string? Failure { get; set; }
         public string? Context { get; set; }
+        public string? FileStamp { get; set; }
     }
     private readonly Dictionary<VariantId, RuntimeInterior> byId = new();
     private readonly Dictionary<string, RuntimeInterior> byMapAssetKey =
@@ -78,6 +81,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
         this.monitor = monitor;
         managedMapPrefix = $"Mods/{coreModId}/InteriorMaps";
         installedBridge = new InstalledSourceBridge(helper, monitor, coreModId);
+        animalTextureCapture = new AnimalSourceTextureCapture(helper);
     }
 
     public IReadOnlyList<RuntimeInterior> Entries { get; private set; } =
@@ -98,7 +102,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
         string[] names = assetNames.ToArray();
         foreach (InstalledSourceProfile profile in installedBridge.Profiles)
         {
-            if (names.Any(name => profile.SharedAssets.Append(profile.MapProxy).Append(profile.StringsProxy)
+            if (names.Any(name => profile.SharedAssets.Concat(profile.MapAssets.Select(profile.ProxyFor)).Append(profile.StringsProxy)
                     .Any(asset => string.Equals(asset, name, StringComparison.OrdinalIgnoreCase))
                     || name.StartsWith("Maps/", StringComparison.OrdinalIgnoreCase)
                     || name.Contains(profile.Id, StringComparison.OrdinalIgnoreCase)))
@@ -135,6 +139,8 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
 
     private bool RefreshSource(InstalledSourceProfile profile)
     {
+        if (profile.IsAnimalHouse)
+            return RefreshAnimalSource(profile);
         if (profile.IsOasis && !Context.IsWorldReady)
             return false;
         SourceRefreshState state = GetSourceState(profile);
@@ -182,6 +188,81 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
                 monitor.Log($"Installed {profile.Name} snapshot is unavailable: {exception.Message} Existing snapshots are retained; no building was changed.", LogLevel.Warn);
             }
             return SetCurrentSource(profile.Id, null);
+        }
+    }
+
+    private bool RefreshAnimalSource(InstalledSourceProfile profile)
+    {
+        SourceRefreshState state = GetSourceState(profile);
+        string Family(InteriorTarget target) => profile.Id + "/" + target;
+        try
+        {
+            if (installedBridge.GetPack(profile) is null)
+                helper.GameContent.Load<Map>(profile.ProxyFor(profile.MapAssets.First()));
+            IContentPack pack = installedBridge.GetPack(profile)
+                ?? throw new InvalidOperationException("Content Patcher has not exposed the reviewed animal-house source.");
+            if (!installedBridge.ValidateRecipe(profile, pack))
+                throw new InvalidOperationException(profile.Name + " has an unavailable or changed source recipe.");
+            AnimalSourceKind kind = profile.IsGreen ? AnimalSourceKind.Green : AnimalSourceKind.Nykachu;
+            AnimalSourceConfiguration configuration = AnimalSourceTextureCapture.ReadConfiguration(pack, kind);
+            var sourceFiles = new DirectoryPackFileSystem(pack.DirectoryPath);
+            // Poll metadata, not texture pixels, for files which CP may not invalidate
+            // while its location-dependent original editor is inactive.
+            string ReadStamp() => string.Join("|", sourceFiles.EnumerateFiles("assets").Concat(sourceFiles.EnumerateFiles("data"))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .Select(path =>
+                {
+                    var info = new FileInfo(Path.Combine(pack.DirectoryPath, path.Replace('/', Path.DirectorySeparatorChar)));
+                    return path + ":" + info.Length + ":" + info.LastWriteTimeUtc.Ticks;
+                }));
+            string stamp = ReadStamp();
+            if (!state.Dirty && state.Configuration == configuration.Canonical && state.FileStamp == stamp)
+                return false;
+
+            AnimalSourceTextureSet sourceTextures = animalTextureCapture.Capture(pack, configuration);
+            InstalledSourceSnapshot[] cohort = AnimalHouseTargetContracts.All.Select(target =>
+                AnimalSourceSnapshot.Capture(helper, installedBridge, profile, configuration, sourceTextures, target)).ToArray();
+            if (ReadStamp() != stamp || AnimalSourceTextureCapture.ReadConfiguration(pack, kind).Canonical != configuration.Canonical
+                || !installedBridge.ValidateRecipe(profile, pack))
+                throw new InvalidOperationException("The source changed during six-target capture; retry after it stabilizes.");
+            // Nothing is advertised or suppressed until all six target snapshots pass.
+            bool changed = false;
+            foreach (InstalledSourceSnapshot resolved in cohort)
+            {
+                string family = Family(resolved.Definition.Target);
+                changed |= SetCurrentSource(family, resolved.Definition.Id);
+                if (byId.ContainsKey(resolved.Definition.Id)) continue;
+                string key = CreateManagedMapAssetKey(resolved.Definition);
+                var runtime = new RuntimeInterior(resolved.Definition, key, resolved.Map, null,
+                    profile.Id, profile.Version, family,
+                    SupportsReversibleGreenhouseState: resolved.SupportsReversibleGreenhouseState);
+                byId.Add(runtime.Definition.Id, runtime);
+                byMapAssetKey.Add(key, runtime);
+                foreach ((string textureKey, TextureSnapshot texture) in resolved.Textures)
+                    textures.TryAdd(textureKey, texture);
+                changed = true;
+                monitor.Log($"Registered installed {profile.Name} {runtime.Definition.Target} as '{runtime.Definition.Id}' ({runtime.Definition.ContentHash}).", LogLevel.Info);
+            }
+            installedBridge.SetAnimalCohortReady(profile, true);
+            state.Configuration = configuration.Canonical;
+            state.FileStamp = stamp;
+            state.Dirty = false;
+            state.Failure = null;
+            return changed;
+        }
+        catch (Exception exception)
+        {
+            installedBridge.SetAnimalCohortReady(profile, false);
+            state.Dirty = true;
+            if (state.Failure != exception.Message)
+            {
+                state.Failure = exception.Message;
+                monitor.Log($"Installed {profile.Name} cohort is unavailable: {exception.Message} Original patches remain active; existing snapshots are retained.", LogLevel.Warn);
+            }
+            bool changed = false;
+            foreach (AnimalHouseTargetContract target in AnimalHouseTargetContracts.All)
+                changed |= SetCurrentSource(Family(target.Target), null);
+            return changed;
         }
     }
 
@@ -239,7 +320,7 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
                     token,
                     "greenhouse",
                     StringComparison.OrdinalIgnoreCase),
-                InteriorTarget.DeluxeBarn => Guid.TryParseExact(token, "N", out _),
+                _ when AnimalHouseTargetContracts.TryGet(candidate.Definition.Target, out _) => Guid.TryParseExact(token, "N", out _),
                 _ => false,
             };
             if (validInstance)
