@@ -18,6 +18,18 @@ Oasis's source-owned map and string patches are isolated from the shared assets.
 
 This first Oasis snapshot includes resolved localized text and the farm name in its fingerprint. Different locales can therefore produce different fingerprints, and changing language can leave a previous saved snapshot unavailable after restart. Multiplayer with different locales is not claimed supported. Source actions, routes, pool behavior, and cask behavior require their own live evidence; map registration alone is not acceptance.
 
+### Installed-original pair acceptance, 2026-09-07
+
+Public SDVKit v0.8.0 single review loaded both separately installed originals with the same reviewed dependencies. Both appeared in the menu; Ellie and Oasis mouse selection, Ellie to Oasis to Ellie switching, occupied-player rejection, and Base restoration passed. The frozen SIC artifact restored the exact saved Oasis variant and fingerprint after a real save/stop/restart.
+
+The actual Oasis minecart first showed its locked message. After applying the original unlock flags in the disposable fixture, it travelled to Bus Stop; the ordinary Bus Stop menu offered Greenhouse Basement and returned to `(26,111)`. The return condition evaluated false for Ellie and true for the selected cellar snapshot. A private copy configured with `UseCellar=false` registered a distinct snapshot, quarantined the unavailable old saved selection, and applied explicitly. Its entrance was visibly closed, its non-alcoholic message resolved, and Default minecarts contained no greenhouse destination. The Spa door reached `(16,93)`; walking across the swimsuit and pool entrance/exit actions produced their expected visible effects.
+
+A separate negative run used a private copy with an unreviewed recipe hash. SIC rejected Oasis while leaving its original patches active. The original return destination retained SIC's additional safety condition, evaluated false for selected Ellie, and was absent from the actual Bus Stop destination menu. All 38 original source files remained unchanged. Final public stop and fixture reset passed.
+
+One restart began with Evelyn's greenhouse-unlock dialogue open. Debug navigation before closing it caused a base-game `DialogueBox.closeDialogue` exception and invalid player placement; that attempt is excluded from navigation acceptance. The next fresh run identified and ended the pending event before navigation, and the focused checks then passed. The original failed log remains in the evidence. Screenshots of an occluded clothing-exit action do not establish a complete change-out check.
+
+Cask placement/aging, Jukebox, exhaustive traversal of every doorway and both changing-room paths, interrupted-update recovery, and uninterrupted GMCM Apply remain open. Bounded smoke still lacks the required companion support; multiplayer was not run. These results establish the bounded two-original selection and routing integration, not complete acceptance of every original-mod feature. Private evidence is `.sdvkit/verification/installed-oasis/acceptance.md`; no source assets or screenshots are redistributed.
+
 ### First installed-source adapter
 
 SIC includes a narrowly scoped adapter for Ellie's Ideal Greenhouse 1.5.0 with the reviewed Content Patcher 2.9.1 build. Install the original pack alongside SIC; no conversion pack or changes to its files are required. Oasis uses the separate bounded integration described above; arbitrary CP interior mods are not registered automatically.
@@ -45,7 +57,7 @@ This is partial GMCM acceptance: uninterrupted post-save menu refresh, the **App
 | Coop and Barn Facelift | 1.2 | Deluxe Barn source | The inspected map lacks the current contract's required AutoFeed property. |
 | Green Coops and Barns | 1.0.4 | Deluxe Barn source | The inspected map sets IsGreenhouse, which the current reversible Barn contract rejects. |
 
-Except for the bounded Ellie adapter described above, these entries identify candidates rather than supported adapters. Local source folders were matched by manifest ID/version and their files hashed; original download archives with publisher digests are unavailable. Their exact local bytes are recorded in private review evidence.
+Except for the bounded Ellie and Oasis integrations described above, these entries identify candidates rather than supported adapters. Local source folders were matched by manifest ID/version and their files hashed; original download archives with publisher digests are unavailable. Their exact local bytes are recorded in private review evidence.
 
 ## First proof and packaging boundary
 
