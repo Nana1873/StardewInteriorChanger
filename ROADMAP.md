@@ -1,4 +1,6 @@
-# Development roadmap
+# Development handoff roadmap
+
+> **Development stopped on September 8, 2026.** This document preserves unfinished work for anyone continuing the project; it does not represent an active development commitment. See the [README](README.md) for verified default-branch functionality and unfinished draft work.
 
 The primary player goal is to install supported interior mods and switch between their layouts from one menu. Real third-party mod compatibility takes priority over an original showcase pack. Work is grouped by independently deliverable capabilities; this roadmap does not claim release readiness.
 
