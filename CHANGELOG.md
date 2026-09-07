@@ -29,6 +29,9 @@ All notable changes to this project are documented here. The format is based on 
 - Exact `SaveLoaded`-specific custom restore with persistent empty-interior quarantine after missing, changed, or failed variants.
 - Correct host authorization for local split-screen and forced local Farmhand reload without reusing Stardew's multiplayer map cache.
 - Building-instance-specific proxy keys and client attestation prevent cache reloads and approvals from leaking across multiple barns; the Farmhand access guard fails closed on every tick.
+- Native viewport-responsive in-game selection menu for the Greenhouse and each Deluxe Barn, with configurable `KeybindList` defaulting to `F8` and deterministic `sic menu [buildingId]` access.
+- Scrollable mouse, keyboard, and controller navigation, optional content-pack previews with safe placeholders, explicit Apply feedback, and visible missing/invalid/hash-mismatch selection warnings.
+- Farmhand menu request tracking over the existing multiplayer messages, including pending-state duplicate prevention, correlated Host results, and HUD feedback when a result arrives after the menu closes.
 
 ### Changed
 
