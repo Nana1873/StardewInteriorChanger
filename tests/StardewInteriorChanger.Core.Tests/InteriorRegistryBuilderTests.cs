@@ -125,8 +125,8 @@ public sealed class InteriorRegistryBuilderTests
 
     [Theory]
     [InlineData("greenhouse")]
-    [InlineData("Barn")]
-    [InlineData("BigBarn")]
+    [InlineData("SVE_PremiumBarn")]
+    [InlineData("Big Barn")]
     [InlineData("Deluxe Barn")]
     public void Build_UnsupportedOrNonCanonicalTarget_IsRejected(string target)
     {

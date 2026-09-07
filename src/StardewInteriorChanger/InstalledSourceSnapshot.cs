@@ -57,7 +57,8 @@ internal sealed record InstalledSourceSnapshot(
     RegisteredInterior Definition,
     MapSnapshot Map,
     IReadOnlyDictionary<string, TextureSnapshot> Textures,
-    InstalledSourceRuntimeData? RuntimeData = null)
+    InstalledSourceRuntimeData? RuntimeData = null,
+    bool SupportsReversibleGreenhouseState = false)
 {
     private const string Recipe = "sic-ellie-v1;cp=2.9.1;source=1.5.0;effective-map-tbin;canonical-map-id;immutable-vanilla-rgba-v1";
     internal static readonly string[] AllowedTextureNames =

@@ -21,7 +21,6 @@ public sealed class ShedTargetTests
     [InlineData("BigShed")]
     [InlineData("Cabin")]
     [InlineData("Farmhouse")]
-    [InlineData("Coop")]
     public void UnreviewedBuildingTypesAreNotNewShedTargets(string buildingType)
     {
         Assert.Null(TargetContracts.ForFarmBuildingType(buildingType));

@@ -132,13 +132,23 @@ public enum InteriorTarget
     Greenhouse = 0,
     DeluxeBarn = 1,
     Shed = 2,
-    BigShed = 3
+    BigShed = 3,
+    Barn = 4,
+    BigBarn = 5,
+    Coop = 6,
+    BigCoop = 7,
+    DeluxeCoop = 8
 }
 
 public static class TargetContracts
 {
     public static readonly TargetContractId Greenhouse = new("greenhouse/v1");
     public static readonly TargetContractId DeluxeBarn = new("deluxe-barn/v1");
+    public static readonly TargetContractId Barn = new("barn/v1");
+    public static readonly TargetContractId BigBarn = new("big-barn/v1");
+    public static readonly TargetContractId Coop = new("coop/v1");
+    public static readonly TargetContractId BigCoop = new("big-coop/v1");
+    public static readonly TargetContractId DeluxeCoop = new("deluxe-coop/v1");
     public static readonly TargetContractId Shed = new("shed/v1");
     public static readonly TargetContractId BigShed = new("big-shed/v1");
 
@@ -148,13 +158,18 @@ public static class TargetContracts
         "Deluxe Barn" => InteriorTarget.DeluxeBarn,
         "Shed" => InteriorTarget.Shed,
         "Big Shed" => InteriorTarget.BigShed,
-        _ => null
+        _ => AnimalHouseTargetContracts.ForBuildingType(buildingType)
     };
 
     public static TargetContractId For(InteriorTarget target) => target switch
     {
         InteriorTarget.Greenhouse => Greenhouse,
         InteriorTarget.DeluxeBarn => DeluxeBarn,
+        InteriorTarget.Barn => Barn,
+        InteriorTarget.BigBarn => BigBarn,
+        InteriorTarget.Coop => Coop,
+        InteriorTarget.BigCoop => BigCoop,
+        InteriorTarget.DeluxeCoop => DeluxeCoop,
         InteriorTarget.Shed => Shed,
         InteriorTarget.BigShed => BigShed,
         _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unknown interior target.")

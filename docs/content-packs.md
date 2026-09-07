@@ -106,6 +106,8 @@ The current runtime contract requires `Back`, `Buildings`, and `Front` layers wi
 
 Every pack-local or mod-local TMX, TSX, or tilesheet dependency must resolve within the variant's `GameplayRoot`. Vanilla tilesheets may continue to be referenced by their game asset names. Symlinks and junctions are not allowed in the pack tree.
 
+The development animal-house contracts also accept `Barn`, `BigBarn`, `Coop`, `BigCoop` and `DeluxeCoop`. Each requires its tier's 4, 8 or 12 troughs and usable produce tiles; only Deluxe tiers require `AutoFeed`. Big and Deluxe Coops retain a canonical empty incubator in addition to their hopper. Active incubation blocks new layout choices. Native maps continue to reject `IsGreenhouse`; the reviewed Green original-source adapter owns its separate reversible capability. See [animal-house originals](animal-house-originals.md) for exact state and live-validation boundaries.
+
 ## Third-party assets and adapters
 
 Publish only files you created yourself or for which you have appropriate permission to use, modify, and redistribute. Attribution alone does not replace permission. Retain written consent and document credits and dependencies.

@@ -9,6 +9,7 @@ Stardew Interior Changer is a SMAPI framework that lets players select registere
 - Only interiors belonging to buildings on the player's farm are selectable; town buildings and arbitrary world locations are outside the scope.
 - `Greenhouse` as the farm's single greenhouse interior.
 - `DeluxeBarn` as a separately selectable interior for each building instance.
+- Development contracts for the other Barn and Coop tiers, with strict fixed-equipment and incubation checks. The two original-source adapters are pending live acceptance; see [animal-house originals](docs/animal-house-originals.md).
 - Development contracts for `Shed` and `BigShed`, retaining canonical wallpaper and flooring regions; focused live acceptance is still pending.
 - Base interior as an explicit, safe selection through the building's normal game asset path.
 - Native interior packs with a small, versioned schema.

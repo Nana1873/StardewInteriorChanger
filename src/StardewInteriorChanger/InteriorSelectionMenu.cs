@@ -154,7 +154,12 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
             T(item.Target switch
             {
                 InteriorTarget.Greenhouse => "menu.building.greenhouse",
+                InteriorTarget.Barn => "menu.building.basic-barn",
+                InteriorTarget.BigBarn => "menu.building.big-barn",
                 InteriorTarget.DeluxeBarn => "menu.building.barn",
+                InteriorTarget.Coop => "menu.building.coop",
+                InteriorTarget.BigCoop => "menu.building.big-coop",
+                InteriorTarget.DeluxeCoop => "menu.building.deluxe-coop",
                 InteriorTarget.Shed => "menu.building.shed",
                 InteriorTarget.BigShed => "menu.building.big-shed",
                 _ => throw new ArgumentOutOfRangeException(nameof(item.Target))

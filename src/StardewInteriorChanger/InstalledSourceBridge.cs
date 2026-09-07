@@ -25,7 +25,9 @@ internal sealed class InstalledSourceBridge
         public IContentPack? Pack { get; set; }
         public string? RejectedRecipe { get; set; }
         public string? ResolvedMapFile { get; set; }
+        public int ResolvedMapLoadCount { get; set; }
         public HashSet<string> ResolvedMapEditors { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public bool AnimalCohortReady { get; set; }
     }
 
     public InstalledSourceBridge(IModHelper helper, IMonitor monitor, string modId)
@@ -43,19 +45,24 @@ internal sealed class InstalledSourceBridge
     {
         SourceState source = sources[profile.Id];
         source.ResolvedMapFile = null;
+        source.ResolvedMapLoadCount = 0;
         source.ResolvedMapEditors.Clear();
     }
 
-    public void RequireResolvedConfiguration(InstalledSourceProfile profile, string configuration)
+    public void RequireResolvedConfiguration(InstalledSourceProfile profile, string configuration, string? sharedAsset = null)
     {
         SourceState source = sources[profile.Id];
-        string expected = profile.IsOasis ? "assets/Greenhouse.tmx" : $"assets/{configuration} Greenhouse.tmx";
+        string expected = profile.IsAnimalHouse ? profile.ExpectedAnimalMap(sharedAsset
+            ?? throw new ArgumentNullException(nameof(sharedAsset)))
+            : profile.IsOasis ? "assets/Greenhouse.tmx" : $"assets/{configuration} Greenhouse.tmx";
         bool valid = string.Equals(source.ResolvedMapFile?.Replace('\\', '/'), expected, StringComparison.OrdinalIgnoreCase);
         if (profile.IsOasis)
         {
             string[] expectedEditors = configuration == "false" ? new[] { "assets/Greenhouse_NoCellar.tmx" } : Array.Empty<string>();
             valid &= source.ResolvedMapEditors.SetEquals(expectedEditors);
         }
+        else if (profile.IsAnimalHouse)
+            valid &= source.ResolvedMapLoadCount == 1 && source.ResolvedMapEditors.Count == 0;
         if (!valid)
             throw new InvalidOperationException($"Content Patcher has not resolved the current {profile.Name} settings yet. Retry after it refreshes.");
     }
@@ -69,6 +76,8 @@ internal sealed class InstalledSourceBridge
             try
             {
                 RequireVersion(info, profile.Version);
+                if (profile.IsGreen && helper.ModRegistry.IsLoaded("KediDili.VanillaPlusProfessions"))
+                    throw new InvalidOperationException("Green integration does not support Vanilla Plus Professions' player-dependent expanded maps. Original patches remain active.");
                 sources.Add(profile.Id, new SourceState(profile));
             }
             catch (Exception exception)
@@ -138,6 +147,15 @@ internal sealed class InstalledSourceBridge
         return false;
     }
 
+    public void SetAnimalCohortReady(InstalledSourceProfile profile, bool ready)
+    {
+        SourceState source = sources[profile.Id];
+        if (!profile.IsAnimalHouse || source.AnimalCohortReady == ready) return;
+        source.AnimalCohortReady = ready;
+        foreach (string asset in profile.MapAssets)
+            helper.GameContent.InvalidateCache(asset);
+    }
+
     private static void RequireVersion(IModInfo info, string expected)
     {
         if (info.Manifest.Version.ToString() != expected)
@@ -158,7 +176,8 @@ internal sealed class InstalledSourceBridge
     }
 
     private SourceState? FindProxy(IAssetName name) => sources.Values.FirstOrDefault(source =>
-        name.IsEquivalentTo(source.Profile.MapProxy) || (source.Profile.IsOasis && name.IsEquivalentTo(source.Profile.StringsProxy)));
+        source.Profile.MapAssets.Any(asset => name.IsEquivalentTo(source.Profile.ProxyFor(asset)))
+        || (source.Profile.IsOasis && name.IsEquivalentTo(source.Profile.StringsProxy)));
 
     private static void Remap(ref IAssetName assetName)
     {
@@ -166,8 +185,11 @@ internal sealed class InstalledSourceBridge
             return;
         SourceState? source = active.FindProxy(assetName);
         if (source is not null)
-            assetName = active.helper.GameContent.ParseAssetName(assetName.IsEquivalentTo(source.Profile.MapProxy)
-                ? SharedAsset : "Strings/StringsFromMaps");
+        {
+            IAssetName requested = assetName;
+            string? mapAsset = source.Profile.MapAssets.FirstOrDefault(asset => requested.IsEquivalentTo(source.Profile.ProxyFor(asset)));
+            assetName = active.helper.GameContent.ParseAssetName(mapAsset ?? "Strings/StringsFromMaps");
+        }
     }
 
     private static void Filter<T>(AssetRequestedEventArgs request, ref IEnumerable<T> __result)
@@ -188,15 +210,21 @@ internal sealed class InstalledSourceBridge
             bool owned = active!.sources.TryGetValue(pack.Manifest.UniqueID, out SourceState? source);
             bool targeted = owned && (proxy is not null ? source == proxy : source!.Profile.SharedAssets.Any(asset => request.NameWithoutLocale.IsEquivalentTo(asset)));
             bool approved = targeted && active.ValidateRecipe(source!.Profile, pack);
-            if (proxy is not null && approved && request.NameWithoutLocale.IsEquivalentTo(proxy.Profile.MapProxy))
+            if (proxy is not null && approved && proxy.Profile.MapAssets.Any(asset => request.NameWithoutLocale.IsEquivalentTo(proxy.Profile.ProxyFor(asset))))
             {
                 string? from = ((string?)patch!.GetType().GetProperty("FromAsset")!.GetValue(patch))?.Replace('\\', '/');
                 if (patch.GetType().FullName == "ContentPatcher.Framework.Patches.LoadPatch")
+                {
                     proxy.ResolvedMapFile = from;
+                    proxy.ResolvedMapLoadCount++;
+                }
+                else if (proxy.Profile.IsAnimalHouse)
+                    proxy.ResolvedMapEditors.Add(from ?? "<inline map edit>");
                 else if (from is not null)
                     proxy.ResolvedMapEditors.Add(from);
             }
-            if (proxy is not null ? approved : !approved)
+            bool suppressOriginal = approved && (!source!.Profile.IsAnimalHouse || source.AnimalCohortReady);
+            if (proxy is not null ? approved : !suppressOriginal)
                 yield return patch;
         }
     }

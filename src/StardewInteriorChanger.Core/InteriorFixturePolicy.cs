@@ -27,7 +27,7 @@ public static class InteriorFixturePolicy
         bool isAnimalHouse,
         int feedHopperCount,
         ObjectFixtureState state) =>
-        target == InteriorTarget.DeluxeBarn
+        AnimalHouseTargetContracts.TryGet(target, out AnimalHouseTargetContract contract)
         && isAnimalHouse
         && feedHopperCount == 1
         && string.Equals(
@@ -36,8 +36,8 @@ public static class InteriorFixturePolicy
             StringComparison.Ordinal)
         // Data/Buildings creates Default_FeedHopper at this tile with fragility 2.
         // The save has no provenance tag, so only this conservative tuple is exempt.
-        && state.DictionaryTile == DeluxeBarnFeedHopperTile
-        && state.ObjectTile == DeluxeBarnFeedHopperTile
+        && state.DictionaryTile == contract.FeedHopperTile
+        && state.ObjectTile == contract.FeedHopperTile
         && state.IsPlainObject
         && state.Fragility == 2
         && state.Stack == 1

@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 using StardewInteriorChanger.Core;
 using StardewValley;
 using StardewValley.Buildings;
+using StardewValley.Events;
+using StardewValley.Menus;
 
 namespace StardewInteriorChanger;
 
@@ -31,8 +33,15 @@ internal static class SwitchSafetyInspector
 
         int feedHopperCount = indoors.objects.Values.Count(obj =>
             obj.QualifiedItemId == InteriorFixturePolicy.DeluxeBarnFeedHopperId);
+        int incubatorCount = indoors.objects.Values.Count(obj =>
+            obj.QualifiedItemId == IncubatorFixturePolicy.ItemId);
+        bool isAnimalTarget = AnimalHouseTargetContracts.TryGet(target, out _);
+        bool reviewedBuilding = isAnimalTarget && AnimalHouseFixtureData.IsReviewedBuilding(building, indoors, target);
+        if (isAnimalTarget && !reviewedBuilding)
+            blockers.Add("the animal-house type, capacity, or built-in equipment differs from the supported game contract");
         int placedObjects = indoors.objects.Pairs.Count(pair =>
-            !IsBuiltInObjectFixture(target, indoors, pair.Key, pair.Value, feedHopperCount));
+            !IsBuiltInObjectFixture(target, building, indoors, pair.Key, pair.Value,
+                feedHopperCount, incubatorCount, reviewedBuilding));
         AddCount(blockers, placedObjects, "placed object(s)");
         AddCount(blockers, indoors.furniture.Count, "piece(s) of furniture");
         AddCount(blockers, indoors.terrainFeatures.Count(), "terrain feature(s) or crop(s)");
@@ -41,11 +50,11 @@ internal static class SwitchSafetyInspector
         AddCount(blockers, indoors.debris.Count, "debris item(s)");
         AddCount(blockers, indoors.characters.Count, "location character(s)");
 
-        if (target == InteriorTarget.DeluxeBarn)
+        if (isAnimalTarget)
         {
             if (indoors is not AnimalHouse animalHouse)
             {
-                blockers.Add("the Deluxe Barn interior isn't an AnimalHouse location");
+                blockers.Add("the animal-house interior isn't an AnimalHouse location");
             }
             else
             {
@@ -53,6 +62,7 @@ internal static class SwitchSafetyInspector
                     blockers,
                     animalHouse.animalsThatLiveHere.Count,
                     "assigned farm animal(s)");
+                AddCount(blockers, animalHouse.animals.Count(), "resident farm animal(s)");
             }
 
             int homeAnimals = Game1.getFarm().Animals.Values.Count(animal =>
@@ -75,26 +85,58 @@ internal static class SwitchSafetyInspector
 
     internal static bool IsBuiltInObjectFixture(
         InteriorTarget target,
+        Building building,
         GameLocation indoors,
         Vector2 dictionaryTile,
         StardewValley.Object obj,
-        int feedHopperCount)
+        int feedHopperCount,
+        int incubatorCount,
+        bool reviewedBuilding)
     {
-        if (target != InteriorTarget.DeluxeBarn
-            || obj.QualifiedItemId != InteriorFixturePolicy.DeluxeBarnFeedHopperId)
+        if (!reviewedBuilding || !AnimalHouseTargetContracts.TryGet(target, out AnimalHouseTargetContract contract))
             return false;
 
-        TilePoint? ReadTile(Vector2 value) =>
-            value.X == InteriorFixturePolicy.DeluxeBarnFeedHopperTile.X
-            && value.Y == InteriorFixturePolicy.DeluxeBarnFeedHopperTile.Y
-                ? InteriorFixturePolicy.DeluxeBarnFeedHopperTile : null;
+        TilePoint? ReadTile(Vector2 value, TilePoint expected) =>
+            value.X == expected.X && value.Y == expected.Y ? expected : null;
+
+        if (obj.QualifiedItemId == IncubatorFixturePolicy.ItemId && contract.HasIncubator)
+        {
+            var context = new IncubatorFixtureContext
+            {
+                BuildingType = building.buildingType.Value,
+                IsAnimalHouse = indoors is AnimalHouse,
+                HasReviewedBuildingData = reviewedBuilding,
+                IncubatorCount = incubatorCount
+            };
+            var state = new IncubatorFixtureState
+            {
+                QualifiedItemId = obj.QualifiedItemId,
+                DictionaryTile = ReadTile(dictionaryTile, IncubatorFixturePolicy.FixtureTile),
+                ObjectTile = ReadTile(obj.TileLocation, IncubatorFixturePolicy.FixtureTile),
+                IsPlainObject = obj.GetType() == typeof(StardewValley.Object),
+                IsBigCraftable = obj.bigCraftable.Value,
+                IsRecipe = obj.IsRecipe,
+                Fragility = obj.Fragility,
+                Stack = obj.Stack,
+                HasModData = obj.modData.Any(),
+                ShowNextIndex = obj.showNextIndex.Value,
+                HasLightSource = obj.lightSource is not null,
+                HasHeldObject = obj.heldObject.Value is not null,
+                MinutesUntilReady = obj.MinutesUntilReady,
+                ReadyForHarvest = obj.readyForHarvest.Value,
+                HasLastInput = obj.lastInputItem.Value is not null,
+                LastOutputRuleId = obj.lastOutputRuleId.Value,
+                Machine = AnimalHouseFixtureData.CaptureMachine(obj)
+            };
+            return IncubatorFixturePolicy.Classify(context, state) == IncubatorFixtureClassification.IdleBuiltIn;
+        }
 
         return InteriorFixturePolicy.IsBuiltInObjectFixture(target, indoors is AnimalHouse,
             feedHopperCount, new ObjectFixtureState
             {
                 QualifiedItemId = obj.QualifiedItemId,
-                DictionaryTile = ReadTile(dictionaryTile),
-                ObjectTile = ReadTile(obj.TileLocation),
+                DictionaryTile = ReadTile(dictionaryTile, contract.FeedHopperTile),
+                ObjectTile = ReadTile(obj.TileLocation, contract.FeedHopperTile),
                 IsPlainObject = obj.GetType() == typeof(StardewValley.Object),
                 Fragility = obj.Fragility,
                 Stack = obj.Stack,
@@ -113,6 +155,17 @@ internal static class SwitchSafetyInspector
         GameLocation indoors)
     {
         var blockers = new List<string>();
+
+        if (indoors is AnimalHouse)
+        {
+            if (indoors.currentEvent is not null)
+                blockers.Add("an animal-house event is active");
+            if (Game1.activeClickableMenu is NamingMenu)
+                blockers.Add("an animal naming transaction may still be pending");
+            if (Game1.farmEvent is QuestionEvent { animal: not null, forceProceed: false } birth
+                && ReferenceEquals(birth.animal.homeInterior, indoors))
+                blockers.Add("an animal birth is pending for this building");
+        }
 
         if (building.daysOfConstructionLeft.Value > 0
             || building.daysUntilUpgrade.Value > 0
