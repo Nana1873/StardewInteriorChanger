@@ -9,7 +9,7 @@ internal sealed record InstalledSourceProfile(string Id, string Version, string 
         "DaisyNiko.OasisGreenhouse", "1.9.4",
         "6C836B131C6228AA1AA209D470B587DBA0D32E195410470777DDEBFE50FBF6B7", "Oasis", "Oasis");
     public static readonly InstalledSourceProfile Nykachu = new(
-        "nykachu.coopbarnfacelift", "1.2",
+        "nykachu.coopbarnfacelift", "1.2.0",
         "FB6414CD968347F9FA260DC4525AE3F066B555F21281C2284E5829984DFB107F", "Coop and Barn Facelift", "Nykachu");
     public static readonly InstalledSourceProfile Green = new(
         "vikich3rry.GreenCoopsBarns", "1.0.4",
