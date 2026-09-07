@@ -1,6 +1,6 @@
 # Original Barn and Coop integration
 
-This capability is under development. Build and contract tests do not establish compatibility in a running save. The focused original-mod review is still required before these adapters can be described as supported.
+This capability remains a draft and is blocked by the first real-source review. Candidate 2 cannot offer the complete original-mod switching workflow. Build and contract tests do not establish compatibility in a running save; the adapters must not yet be described as supported.
 
 ## Player workflow
 
@@ -30,7 +30,17 @@ Exact saved-map restoration is a separate operation. It preserves processing and
 
 An upgrade changes the target contract. A custom choice from another tier stays visible as an unresolved request until the player explicitly chooses a compatible layout for the current tier.
 
-## Acceptance gates
+## Recorded live result: blocked
+
+The 2026-09-08 single-player review used the README-pinned public SDVKit 0.8.0 and candidate code commit `a268ac0`, after correcting the comparison with SMAPI's normalized Nykachu version `1.2.0`. The staged target build identity was `sha256:5c3769221aff1a772d7eeb7ea0edcc15d39f37ed7b6c15e55fd1b1066ff77261`. The exact disposable fixture loaded with verified identity, but this environment readiness was not functional acceptance.
+
+The game reported `Installed Coop and Barn Facelift cohort is unavailable: Unsupported Coop and Barn Facelift tilesheet 'Maps/townInterior'.` SIC retained the original source patches instead of publishing a partial six-tier cohort. Green registered all six source variants; registration alone does not prove their textures or switching behavior in use. With Nykachu's original replacements still active, safe Base preparation failed for `Maps/Barn3` and `Maps/Coop3`: the Deluxe Barn and Deluxe Coop contracts require a non-empty map-level `AutoFeed` property which those resolved maps did not provide. The intended twelve-variant, both-original workflow therefore failed its initial live gate.
+
+No fix or additional runtime experiment was made after this blocker; development was stopped at the user's request. PR #15 remains a draft. The acceptance gates below remain open, including both-direction switching and Base recovery across all tiers, instance independence, source-specific visual inspection, feeding, Green planting/season and state reversal, GMCM refresh, incubation rejection/hatching, and exact save/stop/restart preservation. No new original-mod compatibility or multiplayer acceptance is claimed.
+
+Private review evidence is retained under `.sdvkit/verification/animal-originals/`: `start-candidate2.json`, `ready-candidate2.json`, and `candidate2.log` record the exact build, fixture readiness and failures; `final-stop.json` and `final-reset.json` confirm the owned process stopped, staging was removed and the disposable fixture was reset. `source-integrity-final.json` compares the original source folders with the pre-review baseline: all 69 files are unchanged, with no additional files. These local evidence files and third-party assets are not committed.
+
+## Open acceptance gates
 
 - Load both original packs together and register twelve independent variants without exclusive-map conflicts.
 - Switch both directions and back to Base for all six tiers, with two separate instances of one tier.
