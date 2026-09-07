@@ -38,6 +38,17 @@ internal static class SelectionStorage
                         return Invalid(instance, contract, "a custom selection belongs to another animal-house tier; explicitly choose an interior for this tier");
                 }
             }
+            // Upgrading changes the contract namespace. An old custom Shed choice
+            // must remain a warning until the player explicitly selects this tier.
+            if (ShedDecorationPolicy.AppliesTo(target))
+            {
+                TargetContractId otherTier = target == InteriorTarget.Shed
+                    ? TargetContracts.BigShed : TargetContracts.Shed;
+                if (building.modData.TryGetValue(Key(otherTier, "Choice"), out string? otherChoice)
+                    && !string.Equals(otherChoice, VanillaValue, StringComparison.Ordinal))
+                    return Invalid(instance, contract, "a custom selection belongs to the other Shed tier; explicitly choose an interior for this tier");
+            }
+
             return new SelectionReadResult(
                 true,
                 false,

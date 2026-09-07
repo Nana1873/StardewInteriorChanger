@@ -49,6 +49,7 @@ public sealed class ModEntry : Mod
     private InteriorSelectionMenu? activeMenu;
     private IViewEngine? viewEngine;
     private bool catalogInitialized;
+    private bool fallbackMapsAttempted;
     private uint catalogReadyTick;
 
     public override void Entry(IModHelper helper)
@@ -134,18 +135,22 @@ public sealed class ModEntry : Mod
         }
     }
 
-    private void LoadVanillaFallbackMaps()
+    private void LoadVanillaFallbackMaps(bool onlyMissing = false)
     {
-        vanillaFallbackMaps.Clear();
+        fallbackMapsAttempted = true;
+        if (!onlyMissing) vanillaFallbackMaps.Clear();
         var assets = new Dictionary<InteriorTarget, string>
         {
             [InteriorTarget.Greenhouse] = "Maps/Greenhouse",
+            [InteriorTarget.Shed] = "Maps/Shed",
+            [InteriorTarget.BigShed] = "Maps/Shed2",
         };
         foreach (AnimalHouseTargetContract contract in AnimalHouseTargetContracts.All)
             assets[contract.Target] = contract.MapAsset;
 
         foreach ((InteriorTarget target, string assetName) in assets)
         {
+            if (onlyMissing && vanillaFallbackMaps.ContainsKey(target)) continue;
             try
             {
                 xTile.Map map = Helper.GameContent.Load<xTile.Map>(assetName);
@@ -333,6 +338,8 @@ public sealed class ModEntry : Mod
     {
         if (!catalog.RefreshInstalledSources())
             return;
+        if (fallbackMapsAttempted)
+            LoadVanillaFallbackMaps(onlyMissing: true);
         Helper.GameContent.InvalidateCache("Strings/StringsFromMaps");
         Helper.GameContent.InvalidateCache("Data/Minecarts");
         activeMenu?.RefreshCatalog();
@@ -928,7 +935,7 @@ public sealed class ModEntry : Mod
 
         Monitor.Log(
             targets.Length == 0
-                ? "No supported Greenhouse, Barn, or Coop exists on this farm."
+                ? "No supported Greenhouse, Barn, Coop, or Shed exists on this farm."
                 : "Supported interior targets:\n" + string.Join("\n", targets),
             LogLevel.Info);
     }
@@ -1219,7 +1226,7 @@ public sealed class ModEntry : Mod
         GameLocation? indoors = building.GetIndoors();
         if (target is null || indoors is null)
         {
-            message = "Only loaded Greenhouses and supported Barn or Coop tiers on the farm are supported.";
+            message = "Only loaded Greenhouses and supported Barn, Coop, or Shed tiers on the farm are supported.";
             return false;
         }
 
@@ -1725,6 +1732,17 @@ public sealed class ModEntry : Mod
         bool allowGreenhouse = animalHouse is not null
             && catalog.TryGetByMapAssetKey(mapAssetKey, out RuntimeInterior destinationInterior)
             && destinationInterior.SupportsReversibleGreenhouseState;
+        Shed? shed = null;
+        ShedDecorationState? previousDecoration = null;
+        if (ShedDecorationPolicy.AppliesTo(target))
+        {
+            shed = indoors as Shed
+                ?? throw new InvalidOperationException("The shed interior isn't a Shed location.");
+            if (!shed.isStructure.Value)
+                throw new InvalidOperationException("The shed interior isn't an instanced building location.");
+            if (!ShedDecorationPolicy.CanPreserveSavedRegions(shed.appliedWallpaper.Keys, shed.appliedFloor.Keys))
+                throw new InvalidOperationException("The shed has saved decoration regions outside 'Wall' and 'Floor'; switching would require a decoration migration.");
+        }
         try
         {
             if (isManagedMap)
@@ -1765,6 +1783,11 @@ public sealed class ModEntry : Mod
                 animalHouse.isGreenhouse.Value = allowGreenhouse && resolvedMap.Properties.ContainsKey("IsGreenhouse");
             }
 
+            // updateLayout applies saved patterns during updateMap. Prevent it from
+            // writing old region coordinates into a newly loaded Shed map.
+            if (shed is not null)
+                previousDecoration = new ShedDecorationState(shed);
+
             if (setMapPath)
             {
                 indoors.mapPath.Value = mapAssetKey;
@@ -1778,12 +1801,21 @@ public sealed class ModEntry : Mod
                 // also reuse a map snapshot supplied by the multiplayer host.
                 indoors.loadMap(mapAssetKey, true);
             }
+            // Rebuild only transient region data; retain saved wallpaper and flooring.
+            // Rollback and synchronized reload use this same path.
+            if (shed is not null)
+            {
+                if (!MapContractValidator.TryValidate(target, shed.Map, out reason))
+                    throw new InvalidOperationException($"Loaded Shed map violates the decoration contract: {reason}");
+                ShedDecorationState.Refresh(shed);
+            }
             building.updateInteriorWarps(indoors);
         }
         catch
         {
             if (animalHouse is not null)
                 animalHouse.isGreenhouse.Value = previousGreenhouse;
+            previousDecoration?.RestoreIfMapUnchanged();
             clientReloadedMaps.Remove(building.id.Value);
             if (!Context.IsOnHostComputer && isManagedMap)
             {
@@ -1946,6 +1978,8 @@ public sealed class ModEntry : Mod
         {
             InteriorTarget.Greenhouse => "greenhouse",
             _ when AnimalHouseTargetContracts.TryGet(interior.Definition.Target, out _) => building.id.Value.ToString("N"),
+            InteriorTarget.Shed or InteriorTarget.BigShed =>
+                building.id.Value.ToString("N"),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(interior),
                 interior.Definition.Target,
@@ -1990,11 +2024,7 @@ public sealed class ModEntry : Mod
         Game1.getFarm().buildings;
 
     private static InteriorTarget? Classify(Building building) =>
-        building.buildingType.Value switch
-        {
-            "Greenhouse" => InteriorTarget.Greenhouse,
-            _ => AnimalHouseTargetContracts.ForBuildingType(building.buildingType.Value),
-        };
+        TargetContracts.ForFarmBuildingType(building.buildingType.Value);
 
     private static string ShortHash(ContentHash hash) =>
         hash.Value[..Math.Min(12, hash.Value.Length)];

@@ -321,6 +321,8 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
                     "greenhouse",
                     StringComparison.OrdinalIgnoreCase),
                 _ when AnimalHouseTargetContracts.TryGet(candidate.Definition.Target, out _) => Guid.TryParseExact(token, "N", out _),
+                InteriorTarget.Shed or InteriorTarget.BigShed =>
+                    Guid.TryParseExact(token, "N", out _),
                 _ => false,
             };
             if (validInstance)

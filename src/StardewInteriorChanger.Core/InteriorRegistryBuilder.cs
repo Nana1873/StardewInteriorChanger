@@ -132,7 +132,7 @@ public sealed class InteriorRegistryBuilder
         {
             entryDiagnostics.Add(Error(
                 RegistryDiagnosticCode.InvalidTarget,
-                "Target must be exactly 'Greenhouse', 'Barn', 'BigBarn', 'DeluxeBarn', 'Coop', 'BigCoop', or 'DeluxeCoop'.",
+                "Target must be exactly 'Greenhouse', 'Barn', 'BigBarn', 'DeluxeBarn', 'Coop', 'BigCoop', 'DeluxeCoop', 'Shed', or 'BigShed'.",
                 index,
                 definition.Id,
                 nameof(definition.Target)));

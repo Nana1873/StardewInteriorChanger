@@ -10,6 +10,8 @@
   "menu.building.coop": "Coop",
   "menu.building.big-coop": "Big Coop",
   "menu.building.deluxe-coop": "Deluxe Coop",
+  "menu.building.shed": "Shed",
+  "menu.building.big-shed": "Big Shed",
   "menu.building.detail.greenhouse": "Position {{x}}, {{y}}",
   "menu.building.detail.barn": "Position {{x}}, {{y}} · ID {{id}}",
   "menu.base.name": "Base interior",

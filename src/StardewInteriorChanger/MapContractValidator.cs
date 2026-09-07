@@ -71,6 +71,10 @@ internal static class MapContractValidator
             return false;
         }
 
+        if (ShedDecorationPolicy.AppliesTo(target)
+            && !TryValidateShedDecoration(map, back, out reason))
+            return false;
+
         if (AnimalHouseTargetContracts.TryGet(target, out AnimalHouseTargetContract contract))
         {
             int troughTiles = CountTilesWithProperty(back, "Trough");
@@ -109,6 +113,31 @@ internal static class MapContractValidator
 
         reason = string.Empty;
         return true;
+    }
+
+    private static bool TryValidateShedDecoration(Map map, Layer back, out string reason)
+    {
+        TryGetProperty(map.Properties, "WallIDs", out string wallIds);
+        TryGetProperty(map.Properties, "FloorIDs", out string floorIds);
+        TileSheet? canonicalSheet = map.TileSheets.FirstOrDefault(sheet => sheet.Id == "walls_and_floors");
+        return ShedDecorationPolicy.TryValidateMap(
+            back.LayerWidth, back.LayerHeight, wallIds, floorIds,
+            canonicalSheet is null ? null : new DecorationTilesheet(canonicalSheet.SheetWidth,
+                canonicalSheet.SheetHeight, canonicalSheet.TileSize.Width, canonicalSheet.TileSize.Height),
+            point =>
+            {
+                Tile? tile = back.Tiles[point.X, point.Y];
+                if (tile is null) return default;
+                string? wall = TryGetTileProperty(tile, "WallID", out string wallId) ? wallId : null;
+                string? floor = TryGetTileProperty(tile, "FloorID", out string floorId) ? floorId : null;
+                string sheetId = tile.TileSheet.Id;
+                // Match DecoratableLocation.IsWallAndFloorTilesheet. Animated markers
+                // are excluded since their effective properties can change after validation.
+                bool canDecorate = tile is StaticTile
+                    && (sheetId.Contains("walls_and_floors", StringComparison.Ordinal)
+                        || sheetId.StartsWith("x_WallsAndFloors_", StringComparison.Ordinal));
+                return new DecorationSurface(wall, floor, canDecorate);
+            }, out reason);
     }
 
     public static bool TryValidateRetainedFixtures(
@@ -388,7 +417,7 @@ internal static class MapContractValidator
         }
     }
 
-    private static bool TryGetTileProperty(
+    internal static bool TryGetTileProperty(
         Tile tile,
         string name,
         out string value)

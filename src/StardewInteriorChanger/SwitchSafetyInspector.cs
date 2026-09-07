@@ -23,6 +23,14 @@ internal static class SwitchSafetyInspector
     {
         List<string> blockers = GetTransientBlockers(building, indoors);
 
+        if (ShedDecorationPolicy.AppliesTo(target))
+        {
+            if (indoors is not Shed shed)
+                blockers.Add("the shed interior isn't a Shed location");
+            else if (!ShedDecorationPolicy.CanPreserveSavedRegions(shed.appliedWallpaper.Keys, shed.appliedFloor.Keys))
+                blockers.Add("saved decoration regions require a migration outside the supported 'Wall' and 'Floor' contract");
+        }
+
         int feedHopperCount = indoors.objects.Values.Count(obj =>
             obj.QualifiedItemId == InteriorFixturePolicy.DeluxeBarnFeedHopperId);
         int incubatorCount = indoors.objects.Values.Count(obj =>

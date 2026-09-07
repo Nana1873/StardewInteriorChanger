@@ -160,6 +160,8 @@ internal sealed class InteriorSelectionMenu : INotifyPropertyChanged, IDisposabl
                 InteriorTarget.Coop => "menu.building.coop",
                 InteriorTarget.BigCoop => "menu.building.big-coop",
                 InteriorTarget.DeluxeCoop => "menu.building.deluxe-coop",
+                InteriorTarget.Shed => "menu.building.shed",
+                InteriorTarget.BigShed => "menu.building.big-shed",
                 _ => throw new ArgumentOutOfRangeException(nameof(item.Target))
             }) + " · " +
             T("menu.building.position", new { x = item.Building.tileX.Value, y = item.Building.tileY.Value }))).ToArray();
