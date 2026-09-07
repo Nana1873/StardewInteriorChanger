@@ -31,8 +31,8 @@ internal sealed record SelectionSubmission(bool IsPending, bool Success, string 
 
 public sealed class ModEntry : Mod
 {
-    internal const ushort MultiplayerProtocolMajor = 1;
-    internal const ushort MultiplayerProtocolMinor = 0;
+    internal const ushort MultiplayerProtocolMajor = InteriorProtocol.Major;
+    internal const ushort MultiplayerProtocolMinor = InteriorProtocol.Minor;
 
     private readonly Dictionary<long, PeerRegistrySnapshot> peerRegistries = new();
     private readonly Dictionary<Guid, PendingClientReconcile> pendingClientReconciles = new();
@@ -140,6 +140,8 @@ public sealed class ModEntry : Mod
         {
             [InteriorTarget.Greenhouse] = "Maps/Greenhouse",
             [InteriorTarget.DeluxeBarn] = "Maps/Barn3",
+            [InteriorTarget.Shed] = "Maps/Shed",
+            [InteriorTarget.BigShed] = "Maps/Shed2",
         };
 
         foreach ((InteriorTarget target, string assetName) in assets)
@@ -926,7 +928,7 @@ public sealed class ModEntry : Mod
 
         Monitor.Log(
             targets.Length == 0
-                ? "No supported Greenhouse or Deluxe Barn exists in this save."
+                ? "No supported Greenhouse, Deluxe Barn, Shed, or Big Shed exists on this farm."
                 : "Supported interior targets:\n" + string.Join("\n", targets),
             LogLevel.Info);
     }
@@ -1172,7 +1174,7 @@ public sealed class ModEntry : Mod
             .Select(building => (Building: building, Target: Classify(building)))
             .Where(item => item.Target is not null && item.Building.GetIndoors() is not null)
             .Select(item => (Building: item.Building, Target: item.Target!.Value))
-            .OrderBy(item => item.Target == InteriorTarget.Greenhouse ? 0 : 1)
+            .OrderBy(item => item.Target)
             .ThenBy(item => item.Building.tileY.Value)
             .ThenBy(item => item.Building.tileX.Value)
             .ThenBy(item => item.Building.id.Value)
@@ -1217,7 +1219,7 @@ public sealed class ModEntry : Mod
         GameLocation? indoors = building.GetIndoors();
         if (target is null || indoors is null)
         {
-            message = "Only loaded Greenhouses and Deluxe Barns are supported.";
+            message = "Only loaded Greenhouses, Deluxe Barns, Sheds, and Big Sheds on the farm are supported.";
             return false;
         }
 
@@ -1706,6 +1708,17 @@ public sealed class ModEntry : Mod
         bool setMapPath)
     {
         bool isManagedMap = catalog.TryGetManagedMapTarget(mapAssetKey, out _);
+        Shed? shed = null;
+        ShedDecorationState? previousDecoration = null;
+        if (ShedDecorationPolicy.AppliesTo(target))
+        {
+            shed = indoors as Shed
+                ?? throw new InvalidOperationException("The shed interior isn't a Shed location.");
+            if (!shed.isStructure.Value)
+                throw new InvalidOperationException("The shed interior isn't an instanced building location.");
+            if (!ShedDecorationPolicy.CanPreserveSavedRegions(shed.appliedWallpaper.Keys, shed.appliedFloor.Keys))
+                throw new InvalidOperationException("The shed has saved decoration regions outside 'Wall' and 'Floor'; switching would require a decoration migration.");
+        }
         try
         {
             if (isManagedMap)
@@ -1735,6 +1748,11 @@ public sealed class ModEntry : Mod
                     throw new InvalidOperationException($"Resolved map '{mapAssetKey}' cannot preserve the existing Feed Hopper: {reason}");
             }
 
+            // updateLayout applies saved patterns during updateMap. Prevent it from
+            // writing old region coordinates into a newly loaded Shed map.
+            if (shed is not null)
+                previousDecoration = new ShedDecorationState(shed);
+
             if (setMapPath)
             {
                 indoors.mapPath.Value = mapAssetKey;
@@ -1748,10 +1766,19 @@ public sealed class ModEntry : Mod
                 // also reuse a map snapshot supplied by the multiplayer host.
                 indoors.loadMap(mapAssetKey, true);
             }
+            // Rebuild only transient region data; retain saved wallpaper and flooring.
+            // Rollback and synchronized reload use this same path.
+            if (shed is not null)
+            {
+                if (!MapContractValidator.TryValidate(target, shed.Map, out reason))
+                    throw new InvalidOperationException($"Loaded Shed map violates the decoration contract: {reason}");
+                ShedDecorationState.Refresh(shed);
+            }
             building.updateInteriorWarps(indoors);
         }
         catch
         {
+            previousDecoration?.RestoreIfMapUnchanged();
             clientReloadedMaps.Remove(building.id.Value);
             if (!Context.IsOnHostComputer && isManagedMap)
             {
@@ -1913,7 +1940,8 @@ public sealed class ModEntry : Mod
         string instanceToken = interior.Definition.Target switch
         {
             InteriorTarget.Greenhouse => "greenhouse",
-            InteriorTarget.DeluxeBarn => building.id.Value.ToString("N"),
+            InteriorTarget.DeluxeBarn or InteriorTarget.Shed or InteriorTarget.BigShed =>
+                building.id.Value.ToString("N"),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(interior),
                 interior.Definition.Target,
@@ -1958,12 +1986,7 @@ public sealed class ModEntry : Mod
         Game1.getFarm().buildings;
 
     private static InteriorTarget? Classify(Building building) =>
-        building.buildingType.Value switch
-        {
-            "Greenhouse" => InteriorTarget.Greenhouse,
-            "Deluxe Barn" => InteriorTarget.DeluxeBarn,
-            _ => null,
-        };
+        TargetContracts.ForFarmBuildingType(building.buildingType.Value);
 
     private static string ShortHash(ContentHash hash) =>
         hash.Value[..Math.Min(12, hash.Value.Length)];

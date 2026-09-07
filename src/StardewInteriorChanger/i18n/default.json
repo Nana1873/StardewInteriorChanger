@@ -5,6 +5,8 @@
   "menu.preview": "Preview",
   "menu.building.greenhouse": "Greenhouse",
   "menu.building.barn": "Deluxe Barn",
+  "menu.building.shed": "Shed",
+  "menu.building.big-shed": "Big Shed",
   "menu.building.detail.greenhouse": "Position {{x}}, {{y}}",
   "menu.building.detail.barn": "Position {{x}}, {{y}} · ID {{id}}",
   "menu.base.name": "Base interior",

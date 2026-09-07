@@ -239,7 +239,8 @@ internal sealed class ContentPackInteriorCatalog : IInteriorCatalog
                     token,
                     "greenhouse",
                     StringComparison.OrdinalIgnoreCase),
-                InteriorTarget.DeluxeBarn => Guid.TryParseExact(token, "N", out _),
+                InteriorTarget.DeluxeBarn or InteriorTarget.Shed or InteriorTarget.BigShed =>
+                    Guid.TryParseExact(token, "N", out _),
                 _ => false,
             };
             if (validInstance)

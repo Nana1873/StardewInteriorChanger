@@ -9,6 +9,32 @@ public sealed class InteriorRegistryBuilderTests
     private readonly InteriorRegistryBuilder builder = new();
 
     [Fact]
+    public void Build_ShedTiersWithIdenticalMapBytes_HaveDistinctContractsAndHashes()
+    {
+        MemoryPackFileSystem files = MemoryPackFileSystem.Create(("assets/shed/interior.tmx", "same-map"));
+        RegisteredInterior small = Assert.Single(builder.Build(PackId,
+            Document(Definition("shed", "Shed", "assets/shed")), files).Registry.Entries);
+        RegisteredInterior big = Assert.Single(builder.Build(PackId,
+            Document(Definition("shed", "BigShed", "assets/shed")), files).Registry.Entries);
+        Assert.Equal(TargetContracts.Shed, small.TargetContract);
+        Assert.Equal(TargetContracts.BigShed, big.TargetContract);
+        Assert.NotEqual(small.ContentHash, big.ContentHash);
+    }
+
+    [Theory]
+    [InlineData("2")]
+    [InlineData("Big Shed")]
+    [InlineData("shed")]
+    public void Build_OnlyCanonicalTargetNamesAreAccepted(string target)
+    {
+        RegistryBuildResult result = builder.Build(PackId,
+            Document(Definition("shed", target, "assets/shed")),
+            MemoryPackFileSystem.Create(("assets/shed/interior.tmx", "map")));
+        Assert.Empty(result.Registry.Entries);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == RegistryDiagnosticCode.InvalidTarget);
+    }
+
+    [Fact]
     public void Build_ValidGreenhouseAndDeluxeBarn_RegistersDeterministically()
     {
         InteriorPackDocument document = Document(

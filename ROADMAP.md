@@ -14,7 +14,9 @@ Start with Greenhouse and Deluxe Barn. The acceptance target is two different su
 - Validate switching A to B and back, Base behavior, occupied-room rejection, save/restart restoration, and original-asset integrity.
 - Previews may be generated locally from supported maps. Bundled previews require a documented right to redistribute the depicted content; taking a screenshot alone does not establish that right.
 
-Ellie and Oasis now have two-original selection and routing evidence. A focused follow-up also verified normal Keg/Cask processing across a full process restart, occupied-switch rejection, and recovery of both products and devices. Remaining real-mod acceptance includes uninterrupted GMCM updates, Jukebox and exhaustive room actions; see [real-mod compatibility](docs/real-mod-compatibility.md).
+Ellie and Oasis now have two-original selection and routing evidence. A focused follow-up also verified normal Keg/Cask processing across a full process restart, occupied-switch rejection, and recovery of both products and devices. The Oasis Jukebox menu and track selection were exercised; audible playback and exhaustive room actions remain open. Uninterrupted GMCM acceptance depends on [SDVKit #171](https://github.com/Nana1873/SDVKit/issues/171), which must support legitimate configuration writes in an owned running review. See [real-mod compatibility](docs/real-mod-compatibility.md).
+
+The next original-source integration is [Coop and Barn Facelift plus Green Coops and Barns (#11)](https://github.com/Nana1873/StardewInteriorChanger/issues/11). Both replace all six animal-house tiers, so the integration must isolate the complete set of maps and their source-specific tilesheets together. Incubation, feeding and Green's greenhouse state are explicit parts of that contract.
 
 Generic Content Patcher auto-import is not assumed. A reviewed compatibility definition should make supported mods seamless to use while failing clearly for unsupported combinations. Permissions and integration limits belong in the compatibility documentation.
 
@@ -29,6 +31,8 @@ Dependency-aware smoke and reliable synthetic input belong in SDVKit. Reuse acce
 Support only interiors owned by buildings on the player's farm. Existing building types placed on other maps must not become implicit targets. Review one additional building type at a time, such as Coop or Shed, with its own map contract, state inventory, fixture, and real-mod acceptance.
 
 Farmhouse support follows the other farm-building targets. It needs a separate contract for upgrades, beds, kitchen, cellar access, spouse areas, renovation state, and wallpaper/flooring. Town interiors and arbitrary world locations are outside the product scope.
+
+[Shed and Big Shed (#13)](https://github.com/Nana1873/StardewInteriorChanger/issues/13) are implemented on a development branch but have not passed live acceptance. Their first live fixture exposed a TMX-versus-XNB tilesheet-size validation mismatch. Separate-instance, decoration and save/restart checks remain mandatory after the correction. The [farm-building contracts](docs/farm-building-contracts.md) describe the bounded design; [main farmhouse support (#12)](https://github.com/Nana1873/StardewInteriorChanger/issues/12) remains a separate implementation.
 
 ## 4. Optional safe animal relocation
 
