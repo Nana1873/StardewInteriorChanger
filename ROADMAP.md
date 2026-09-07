@@ -14,6 +14,8 @@ Start with Greenhouse and Deluxe Barn. The acceptance target is two different su
 - Validate switching A to B and back, Base behavior, occupied-room rejection, save/restart restoration, and original-asset integrity.
 - Previews may be generated locally from supported maps. Bundled previews require a documented right to redistribute the depicted content; taking a screenshot alone does not establish that right.
 
+Ellie and Oasis now have two-original selection and routing evidence. A focused follow-up also verified normal Keg/Cask processing across a full process restart, occupied-switch rejection, and recovery of both products and devices. Remaining real-mod acceptance includes uninterrupted GMCM updates, Jukebox and exhaustive room actions; see [real-mod compatibility](docs/real-mod-compatibility.md).
+
 Generic Content Patcher auto-import is not assumed. A reviewed compatibility definition should make supported mods seamless to use while failing clearly for unsupported combinations. Permissions and integration limits belong in the compatibility documentation.
 
 ## 2. Finish selection-menu acceptance

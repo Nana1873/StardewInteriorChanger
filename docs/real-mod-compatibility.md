@@ -28,7 +28,23 @@ A separate negative run used a private copy with an unreviewed recipe hash. SIC 
 
 One restart began with Evelyn's greenhouse-unlock dialogue open. Debug navigation before closing it caused a base-game `DialogueBox.closeDialogue` exception and invalid player placement; that attempt is excluded from navigation acceptance. The next fresh run identified and ended the pending event before navigation, and the focused checks then passed. The original failed log remains in the evidence. Screenshots of an occluded clothing-exit action do not establish a complete change-out check.
 
-Cask placement/aging, Jukebox, exhaustive traversal of every doorway and both changing-room paths, interrupted-update recovery, and uninterrupted GMCM Apply remain open. Bounded smoke still lacks the required companion support; multiplayer was not run. These results establish the bounded two-original selection and routing integration, not complete acceptance of every original-mod feature. Private evidence is `.sdvkit/verification/installed-oasis/acceptance.md`; no source assets or screenshots are redistributed.
+The subsequent machine review below covers Cask placement and aging continuation. Jukebox, exhaustive traversal of every doorway and both changing-room paths, interrupted-update recovery, and uninterrupted GMCM Apply remain open. Bounded smoke still lacks the required companion support; multiplayer was not run. These results establish the bounded two-original selection and routing integration, not complete acceptance of every original-mod feature. Private evidence is `.sdvkit/verification/installed-oasis/acceptance.md`; no source assets or screenshots are redistributed.
+
+### Machine preservation acceptance, 2026-09-07
+
+A focused public SDVKit v0.8.0 single review reused the unchanged accepted two-original artifact. Normal inventory and input actions placed a Keg and Cask in Oasis, then filled them with Starfruit and Wine. With the player outside, both Ellie selection and Base restoration rejected the two placed objects. Reapplying the identical Oasis selection remained safe.
+
+After a completed save and full process restart with the same artifact and configuration, the exact Oasis fingerprint restored with both machines still present. Completed saves before and after restart retain matching positions, owners, held items, input items and output rules. The Keg's remaining time decreased from 8500 to 6900 minutes, and the Cask's `daysToMature` decreased from 55 to 54 with unchanged wine and quality. Time advances normally during review; this is processing-continuation evidence, not a same-tick timer comparison.
+
+Fairy Dust completed the Keg for a normal harvest check. A pickaxe extracted the still-aging Cask wine and recovered both empty devices. Switching to Ellie then succeeded. The final save contains an empty greenhouse object collection and one each of Starfruit Wine, ordinary Wine, Keg and Cask in the inventory. No contents were removed through fixture cleanup or save editing. All 38 original source files remained unchanged; final public stop and fixture reset passed.
+
+This covers the reviewed vanilla Keg and Cask on the original Oasis map. Full natural maturation, every quality threshold, arbitrary modded machines, and occupied configuration updates remain separate checks. Private logs, inspected viewport captures, completed saves and domain assertions are retained under `.sdvkit/verification/machine-preservation/`; none of the original assets or screenshots is redistributed.
+
+### Retained barn equipment acceptance, 2026-09-07
+
+A separate frozen build narrowed the Deluxe Barn Feed Hopper exception to its canonical inert equipment state. Public single review with a synthetic native pack confirmed that a normal barn can switch, while a target that blocks the hopper's tile is rejected with the previous selection and map preserved. An additional Feed Hopper and an ordinary Keg each blocked changes. A real save/stop/restart restored the exact custom map with the Keg still present; after removing that empty owned test object, Base restoration succeeded. The canonical hopper's serialized payload remained identical across custom and Base saves.
+
+All 94 Core tests, full mod build, packaging and final public stop/reset passed. These fixture checks verify the narrowed occupancy and destination-geometry rules; they do not add a new third-party barn adapter. Private evidence is `.sdvkit/verification/hopper-safety/`. The real-source machine processing review above used the preceding unchanged artifact; its source-integration evidence is reused for unaffected behavior.
 
 ### First installed-source adapter
 
